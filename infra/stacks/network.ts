@@ -13,9 +13,7 @@ export class NetworkStack extends Stack {
     this.vpc = new ec2.Vpc(this, "Vpc", {
       maxAzs: 2,
       natGateways: 0,
-      subnetConfiguration: [
-        { name: "public", subnetType: ec2.SubnetType.PUBLIC, cidrMask: 24 },
-      ],
+      subnetConfiguration: [{ name: "public", subnetType: ec2.SubnetType.PUBLIC, cidrMask: 24 }],
     });
   }
 }

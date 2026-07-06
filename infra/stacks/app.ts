@@ -33,7 +33,10 @@ export class AppStack extends Stack {
     });
 
     // dbSecret is the RDS-generated JSON secret (host/port/username/password/dbname).
-    const dbSecret = props.db.secret!;
+    const dbSecret = props.db.secret;
+    if (!dbSecret) {
+      throw new Error("RDS instance has no generated secret");
+    }
 
     const service = new ecsPatterns.ApplicationLoadBalancedFargateService(this, "Api", {
       cluster,

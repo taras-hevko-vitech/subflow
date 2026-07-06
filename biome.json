@@ -11,6 +11,9 @@
     "indentWidth": 2,
     "lineWidth": 100
   },
+  "javascript": {
+    "parser": { "unsafeParameterDecoratorsEnabled": true }
+  },
   "files": {
     "ignore": ["dist", "node_modules", "cdk.out", "drizzle", "**/*.gen.ts"]
   }

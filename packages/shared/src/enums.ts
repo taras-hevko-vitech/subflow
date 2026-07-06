@@ -19,8 +19,7 @@ export const SubscriptionCadence = {
   Monthly: "monthly",
   Yearly: "yearly",
 } as const;
-export type SubscriptionCadence =
-  (typeof SubscriptionCadence)[keyof typeof SubscriptionCadence];
+export type SubscriptionCadence = (typeof SubscriptionCadence)[keyof typeof SubscriptionCadence];
 
 export const SubscriptionStatus = {
   Detected: "detected",
@@ -28,8 +27,7 @@ export const SubscriptionStatus = {
   Rejected: "rejected",
   Container: "container",
 } as const;
-export type SubscriptionStatus =
-  (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
+export type SubscriptionStatus = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
 
 export const SubscriptionEventType = {
   Charge: "charge",
