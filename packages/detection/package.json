@@ -6,9 +6,8 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eval": "bun src/eval/cli.ts"
   },
-  "dependencies": {
-    "@subflow/shared": "workspace:*"
-  }
+  "dependencies": {}
 }

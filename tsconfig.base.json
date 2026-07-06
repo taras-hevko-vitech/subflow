@@ -13,12 +13,7 @@
     "declaration": true,
     "sourceMap": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "baseUrl": ".",
-    "paths": {
-      "@subflow/shared": ["packages/shared/src/index.ts"],
-      "@subflow/detection": ["packages/detection/src/index.ts"]
-    }
+    "emitDecoratorMetadata": true
   },
   "exclude": ["node_modules", "dist"]
 }

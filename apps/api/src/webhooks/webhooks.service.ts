@@ -114,8 +114,8 @@ export class WebhooksService {
       raw: tx.raw,
     });
     await this.db.update(bankConnections).set({ lastWebhookAt: new Date() }).where(eq(bankConnections.id, connectionId));
-    // incremental detection (subF-11) + "charge tomorrow" check (subF-16) hang off this
-    await this.boss?.send(QUEUE_DETECTION_RECOMPUTE, { connectionId, accountId });
+    // txId scopes the recompute to this merchant's series only (incremental, AC ≤1s)
+    await this.boss?.send(QUEUE_DETECTION_RECOMPUTE, { connectionId, accountId, txId: tx.id });
   }
 
   /** Lease-gated: registering the webhook is a mono API call like any other. */

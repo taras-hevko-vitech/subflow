@@ -48,9 +48,6 @@
     "packages/detection": {
       "name": "@subflow/detection",
       "version": "0.0.0",
-      "dependencies": {
-        "@subflow/shared": "workspace:*",
-      },
     },
     "packages/shared": {
       "name": "@subflow/shared",

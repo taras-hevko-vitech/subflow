@@ -5,14 +5,7 @@ import { ConnectionsModule } from "../connections/connections.module";
 // boss.start() must run before createQueue/work below.
 import { JobsModule, PG_BOSS } from "../jobs/jobs.module";
 import { BackfillController } from "./backfill.controller";
-import {
-  BackfillService,
-  type PlanJobData,
-  QUEUE_BACKFILL_PLAN,
-  QUEUE_BACKFILL_WINDOW,
-  QUEUE_DETECTION_RECOMPUTE,
-  type WindowJobData,
-} from "./backfill.service";
+import { BackfillService, type PlanJobData, QUEUE_BACKFILL_PLAN, QUEUE_BACKFILL_WINDOW, type WindowJobData } from "./backfill.service";
 
 @Module({
   imports: [JobsModule, ConnectionsModule],
@@ -33,17 +26,13 @@ export class BackfillModule implements OnModuleInit {
 
     await this.boss.createQueue(QUEUE_BACKFILL_PLAN);
     await this.boss.createQueue(QUEUE_BACKFILL_WINDOW);
-    await this.boss.createQueue(QUEUE_DETECTION_RECOMPUTE);
+    // detection.recompute queue + worker are owned by DetectionModule
 
     await this.boss.work<PlanJobData>(QUEUE_BACKFILL_PLAN, { batchSize: 1 }, async (jobs) => {
       for (const job of jobs) await this.backfill.runPlan(job.data);
     });
     await this.boss.work<WindowJobData>(QUEUE_BACKFILL_WINDOW, { batchSize: 1 }, async (jobs) => {
       for (const job of jobs) await this.backfill.runWindow(job.data);
-    });
-    // Stub until the detection engine (subF-11) takes this queue over.
-    await this.boss.work(QUEUE_DETECTION_RECOMPUTE, { batchSize: 1 }, async (jobs) => {
-      for (const job of jobs) this.logger.debug(`detection.recompute stub: ${JSON.stringify(job.data)}`);
     });
   }
 }
