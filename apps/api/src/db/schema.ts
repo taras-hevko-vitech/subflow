@@ -188,6 +188,16 @@ export const detectionFeedback = pgTable("detection_feedback", {
   at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// --- bank integration (subF-8) ---
+// DB-lease for the mono per-token limit (1 req/60s). One row per connection; acquiring is
+// an atomic conditional UPDATE, so the limit holds across concurrent jobs and >1 API task.
+export const providerRateLeases = pgTable("provider_rate_leases", {
+  connectionId: uuid("connection_id")
+    .primaryKey()
+    .references(() => bankConnections.id, { onDelete: "cascade" }),
+  nextAllowedAt: timestamp("next_allowed_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // --- auth (subF-6) ---
 // Keyed by email, not user id: requesting a link must not create a user (typo'd emails,
 // enumeration). The user row is created on verify. Only the sha256 hash is stored.

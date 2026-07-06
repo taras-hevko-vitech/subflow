@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "./auth/auth.module";
+import { BankModule } from "./bank/bank.module";
 import { ConfigModule } from "./config/config.module";
+import { ConnectionsModule } from "./connections/connections.module";
 import { DbModule } from "./db/db.module";
 import { HealthModule } from "./health/health.module";
 import { JobsModule } from "./jobs/jobs.module";
@@ -16,6 +18,8 @@ import { AppLoggerModule } from "./observability/logging.module";
     HealthModule,
     AuthModule,
     MeModule,
+    BankModule,
+    ConnectionsModule,
   ],
 })
 export class AppModule {}
