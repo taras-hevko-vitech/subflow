@@ -42,6 +42,14 @@ cd apps/api && bun run dev        # API на :3000, /health
 
 Скрипти (з кореня): `bun run typecheck` · `bun run test` · `bun run lint` · `bun run build`.
 
+## Модель даних
+
+Схема ядра — `apps/api/src/db/schema.ts` (Drizzle), міграції в `apps/api/drizzle/`.
+Таблиця `transactions` тримає семантику, сумісну з **Berlin Group** (майбутнє open banking):
+`id`↔transactionId, `time`↔bookingDate/valueDate, `description`↔remittanceInformation,
+`amount` (minor units) + `currency_code`↔transactionAmount, `balance`↔balanceAfterTransaction.
+Тому другий провайдер (provider API / open banking) переюзає ту саму таблицю через тонкий адаптер.
+
 ## Беклог
 
 Дивись `tickets-mvp/subF-0-INDEX.md` — порядок виконання, залежності, go/no-go гейти.
