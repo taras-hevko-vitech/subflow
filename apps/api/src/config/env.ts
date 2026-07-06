@@ -17,6 +17,8 @@ const EnvSchema = z.object({
   AWS_REGION: z.string().default("eu-central-1"),
   // bank integration (subF-8); overridable for local mock runs
   MONO_BASE_URL: z.string().url().default("https://api.monobank.ua"),
+  // mono hard limit is 1 req/60s per token; lowered only in local verification runs
+  MONO_LEASE_SECONDS: z.coerce.number().int().positive().default(60),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

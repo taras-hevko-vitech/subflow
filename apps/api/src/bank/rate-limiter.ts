@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { providerRateLeases } from "../db/schema";
 import type { Db } from "../db/types";
 
-export const LEASE_INTERVAL_S = 60;
+export const DEFAULT_LEASE_INTERVAL_S = 60;
 
 export type LeaseResult = { granted: true } | { granted: false; retryAfterMs: number };
 
@@ -12,10 +12,14 @@ export type LeaseResult = { granted: true } | { granted: false; retryAfterMs: nu
  * one wins per window regardless of how many jobs or API tasks race. Callers that lose
  * get `retryAfterMs` and must reschedule (never drop work).
  */
-export async function acquireProviderLease(db: Db, connectionId: string): Promise<LeaseResult> {
+export async function acquireProviderLease(
+  db: Db,
+  connectionId: string,
+  intervalS: number = DEFAULT_LEASE_INTERVAL_S,
+): Promise<LeaseResult> {
   const claimed = await db.execute(
     sql`update provider_rate_leases
-        set next_allowed_at = now() + make_interval(secs => ${LEASE_INTERVAL_S})
+        set next_allowed_at = now() + make_interval(secs => ${intervalS})
         where connection_id = ${connectionId} and next_allowed_at <= now()
         returning connection_id`,
   );
@@ -30,12 +34,12 @@ export async function acquireProviderLease(db: Db, connectionId: string): Promis
 }
 
 /** Called on connect: the validation client-info call just consumed this token's window. */
-export async function initProviderLease(db: Db, connectionId: string): Promise<void> {
+export async function initProviderLease(db: Db, connectionId: string, intervalS: number = DEFAULT_LEASE_INTERVAL_S): Promise<void> {
   await db
     .insert(providerRateLeases)
     .values({
       connectionId,
-      nextAllowedAt: sql`now() + make_interval(secs => ${LEASE_INTERVAL_S})`,
+      nextAllowedAt: sql`now() + make_interval(secs => ${intervalS})`,
     })
     .onConflictDoNothing();
 }

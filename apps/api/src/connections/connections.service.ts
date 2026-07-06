@@ -1,5 +1,6 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
+import type PgBoss from "pg-boss";
 import { BANK_PROVIDER, type BankProvider, ProviderError, TokenRevokedError } from "../bank/bank-provider";
 import { initProviderLease } from "../bank/rate-limiter";
 import { ENV, type Env } from "../config/env";
@@ -7,6 +8,10 @@ import { decryptToken, encryptToken } from "../crypto/token-cipher";
 import { DB } from "../db/db.module";
 import { accounts, bankConnections } from "../db/schema";
 import type { Db } from "../db/types";
+import { PG_BOSS } from "../jobs/jobs.module";
+
+// Queue name duplicated from backfill.service to avoid a module cycle (Backfill imports Connections).
+const QUEUE_BACKFILL_PLAN = "backfill.plan";
 
 export interface ConnectResult {
   connectionId: string;
@@ -21,10 +26,13 @@ export interface ConnectResult {
 
 @Injectable()
 export class ConnectionsService {
+  private readonly logger = new Logger(ConnectionsService.name);
+
   constructor(
     @Inject(DB) private readonly maybeDb: Db | null,
     @Inject(ENV) private readonly env: Env,
     @Inject(BANK_PROVIDER) private readonly provider: BankProvider,
+    @Inject(PG_BOSS) private readonly boss: PgBoss | null,
   ) {}
 
   private get db(): Db {
@@ -63,7 +71,7 @@ export class ConnectionsService {
       })
       .returning();
     if (!conn) throw new ServiceUnavailableException("connection insert failed");
-    await initProviderLease(this.db, conn.id);
+    await initProviderLease(this.db, conn.id, this.env.MONO_LEASE_SECONDS);
 
     const result: ConnectResult = { connectionId: conn.id, accounts: [] };
     for (const acc of info.accounts) {
@@ -94,6 +102,13 @@ export class ConnectionsService {
           isTracked: row.isTracked,
         });
       }
+    }
+
+    // Kick off the 12-month backfill (subF-9); newest 2 months land first.
+    if (this.boss) {
+      await this.boss.send(QUEUE_BACKFILL_PLAN, { connectionId: conn.id }, { retryLimit: 5, retryDelay: 30 });
+    } else {
+      this.logger.warn("pg-boss disabled — backfill not scheduled");
     }
     return result;
   }
