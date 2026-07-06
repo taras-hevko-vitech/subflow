@@ -30,12 +30,8 @@ export class JobsModule implements OnModuleInit, OnModuleDestroy {
       this.logger.warn("pg-boss disabled (no DATABASE_URL)");
       return;
     }
+    // Queues and workers register in the feature modules (backfill, webhooks, ...).
     await this.boss.start();
-    // Example queue — real queues replace this in subF-9 / subF-10.
-    await this.boss.createQueue("example");
-    await this.boss.work("example", async () => {
-      this.logger.log("example job ran");
-    });
   }
 
   async onModuleDestroy(): Promise<void> {
