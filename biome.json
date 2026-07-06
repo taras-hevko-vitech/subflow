@@ -15,6 +15,6 @@
     "parser": { "unsafeParameterDecoratorsEnabled": true }
   },
   "files": {
-    "ignore": ["dist", "node_modules", "cdk.out", "drizzle", "**/*.gen.ts"]
+    "ignore": ["dist", "node_modules", ".turbo", "cdk.out", "drizzle", "**/*.gen.ts"]
   }
 }
