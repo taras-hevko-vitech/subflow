@@ -1,45 +1,58 @@
 # infra — AWS CDK v2 (subF-5)
 
-Реальний код інфри (навчальна ціль). Регіон **eu-central-1**. 4 стеки:
+Infrastructure as real code (a deliberate learning goal). Region **eu-central-1**. 4 stacks:
 
-| Стек | Ресурси |
-|------|---------|
-| `Subflow-Network` | VPC, публічні сабнети, **без NAT Gateway** (guardrail) |
+| Stack | Resources |
+|-------|-----------|
+| `Subflow-Network` | VPC, public subnets, **no NAT Gateway** (cost guardrail) |
 | `Subflow-Data` | RDS Postgres `t4g.micro` single-AZ + gp3; Secrets Manager (DB creds + token-encryption key); SSM param |
-| `Subflow-App` | ECR; ECS cluster; Fargate (0.25 vCPU / 0.5 GB, 1 task, public IP); ALB; CloudWatch logs; health-check `/health` |
-| `Subflow-Ops` | AWS Budget $55 (as code, алерти 50/85/100% + forecast → email); GitHub OIDC provider + deploy role |
+| `Subflow-App` | ECR; ECS cluster; Fargate (0.25 vCPU / 0.5 GB, 1 task, public IP); ALB; CloudWatch logs; `/health` health check |
+| `Subflow-Ops` | AWS Budget $55 (as code, alerts at 50/85/100% + forecast → email); GitHub OIDC provider + deploy role |
 
-## Оцінка вартості (steady-state, eu-central-1)
+## Cost estimate (steady-state, eu-central-1)
 
-| Ресурс | Конфіг | ~$/міс |
-|--------|--------|-------:|
-| ALB | 1 ALB + низькі LCU | 18–22 |
+| Resource | Config | ~$/mo |
+|----------|--------|------:|
+| ALB | 1 ALB + low LCU | 18–22 |
 | RDS | db.t4g.micro, single-AZ, 20GB gp3 | 15–17 |
 | Fargate | 1×0.25 vCPU / 0.5 GB, 24/7 | 11–13 |
 | Public IPv4 | ALB + task | 3–5 |
 | CloudWatch | logs + alarms | 2–4 |
-| Secrets Manager | 2 секрети | ~1 |
-| ECR / SSM / Route53 | образи / params / zone | ~1 |
-| Data transfer | низький | 1–2 |
-| **NAT Gateway** | **уникнуто** | **0** |
-| **Разом** | | **≈ $52–65** |
+| Secrets Manager | 2 secrets | ~1 |
+| ECR / SSM / Route53 | images / params / zone | ~1 |
+| Data transfer | low | 1–2 |
+| **NAT Gateway** | **avoided** | **0** |
+| **Total** | | **≈ $52–65** |
 
-Budget alarm стоїть на **$55** — це трипвайр, не стеля; forecast-алерт попереджає про виповзання.
+The budget alarm is set to **$55** — a tripwire, not a ceiling; the forecast alert warns
+about creeping costs.
 
-## Команди
+## Commands
 
 ```bash
 cd infra
-bun run synth                 # рендер CloudFormation (працює без акаунта)
-# після створення AWS-акаунта:
+bun run synth                 # render CloudFormation (works without an account)
+# once the AWS account exists:
 export CDK_DEFAULT_ACCOUNT=<id>
 bunx cdk bootstrap aws://<id>/eu-central-1
 bun run deploy -- -c alertEmail=you@domain -c githubRepo=OWNER/subflow
 ```
 
-## Що ще НЕ під'єднано (свідомо)
+## Deliberately NOT wired up yet
 
-- **Домен / HTTPS / ACM / Route53** — `subflow.app` ще не зареєстрований. ALB поки HTTP.
-  Після реєстрації hosted zone: ACM DNS-cert + HTTPS:443 listener + Route53 alias (TODO у `stacks/app.ts`).
-- `cdk deploy` заблокований до створення окремого AWS-акаунта (зовнішній блокер).
-- Перший деплой: спочатку запушити образ у ECR (`latest`), потім `cdk deploy` (сервіс тягне образ).
+- **Domain / HTTPS / ACM / Route53** — `subflow.app` is not registered yet. The ALB is
+  plain HTTP for now. Once the hosted zone exists: ACM DNS cert + HTTPS:443 listener +
+  Route53 alias (TODO in `stacks/app.ts`).
+- `cdk deploy` is blocked until the dedicated AWS account is created (external blocker).
+- First deploy: push the image to ECR (`latest`) first, then `cdk deploy` (the service
+  pulls the image).
+
+## Cost tradeoffs (documented per the guardrail rule)
+
+- **No NAT Gateway** (~$32/mo saved): public subnets + public IPs on Fargate tasks; the
+  RDS instance has no public IP and only allows ingress from within the VPC.
+- **Single-AZ RDS**: acceptable for MVP; multi-AZ doubles the cost.
+- **ALB kept** (~$20/mo): the single biggest fixed cost, but monobank webhooks need a
+  stable public HTTPS endpoint, and managed TLS/health checks are worth it.
+- **Fargate 0.25/0.5**: cheapest sane size; watch for OOM once detection + pg-boss run
+  under load, bump to 0.5/1 if needed.
