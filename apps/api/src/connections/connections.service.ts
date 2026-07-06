@@ -1,17 +1,6 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  NotFoundException,
-  ServiceUnavailableException,
-} from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
-import {
-  BANK_PROVIDER,
-  type BankProvider,
-  ProviderError,
-  TokenRevokedError,
-} from "../bank/bank-provider";
+import { BANK_PROVIDER, type BankProvider, ProviderError, TokenRevokedError } from "../bank/bank-provider";
 import { initProviderLease } from "../bank/rate-limiter";
 import { ENV, type Env } from "../config/env";
 import { decryptToken, encryptToken } from "../crypto/token-cipher";
@@ -60,9 +49,7 @@ export class ConnectionsService {
       info = await this.provider.getClientInfo(token.trim());
     } catch (e) {
       if (e instanceof TokenRevokedError || (e instanceof ProviderError && e.status < 500)) {
-        throw new BadRequestException(
-          "Токен невалідний — перевір, чи скопіював його повністю з api.monobank.ua",
-        );
+        throw new BadRequestException("Токен невалідний — перевір, чи скопіював його повністю з api.monobank.ua");
       }
       throw new ServiceUnavailableException("monobank недоступний, спробуй за хвилину");
     }
@@ -121,20 +108,13 @@ export class ConnectionsService {
       .limit(1);
     if (!owned) throw new NotFoundException();
 
-    const [updated] = await this.db
-      .update(accounts)
-      .set({ isTracked })
-      .where(eq(accounts.id, accountId))
-      .returning();
+    const [updated] = await this.db.update(accounts).set({ isTracked }).where(eq(accounts.id, accountId)).returning();
     return { id: updated?.id, isTracked: updated?.isTracked };
   }
 
   /** 403 from mono on an existing connection → revoked; a push nudge follows in subF-16. */
   async markRevoked(connectionId: string): Promise<void> {
-    await this.db
-      .update(bankConnections)
-      .set({ status: "revoked" })
-      .where(eq(bankConnections.id, connectionId));
+    await this.db.update(bankConnections).set({ status: "revoked" }).where(eq(bankConnections.id, connectionId));
   }
 
   /**
@@ -142,15 +122,8 @@ export class ConnectionsService {
    * webhooks, watchdog). Decrypts the token and flips the connection to 'revoked' on 403
    * so jobs never spin on a dead token.
    */
-  async withConnectionToken<T>(
-    connectionId: string,
-    fn: (token: string, provider: BankProvider) => Promise<T>,
-  ): Promise<T> {
-    const [conn] = await this.db
-      .select()
-      .from(bankConnections)
-      .where(eq(bankConnections.id, connectionId))
-      .limit(1);
+  async withConnectionToken<T>(connectionId: string, fn: (token: string, provider: BankProvider) => Promise<T>): Promise<T> {
+    const [conn] = await this.db.select().from(bankConnections).where(eq(bankConnections.id, connectionId)).limit(1);
     if (!conn) throw new NotFoundException("connection not found");
     try {
       return await fn(decryptToken(conn.encryptedToken, this.encryptionKey), this.provider);

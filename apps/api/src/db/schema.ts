@@ -3,36 +3,14 @@
 //
 // Postgres enum values must stay in sync with the string unions in @subflow/shared.
 import { sql } from "drizzle-orm";
-import {
-  bigint,
-  boolean,
-  index,
-  integer,
-  jsonb,
-  numeric,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { bigint, boolean, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 // --- enums (mirror @subflow/shared) ---
 export const bankProviderEnum = pgEnum("bank_provider", ["mono_personal", "mono_provider"]);
 export const connectionStatusEnum = pgEnum("connection_status", ["active", "revoked", "error"]);
 export const cadenceEnum = pgEnum("subscription_cadence", ["weekly", "monthly", "yearly"]);
-export const subscriptionStatusEnum = pgEnum("subscription_status", [
-  "detected",
-  "confirmed",
-  "rejected",
-  "container",
-]);
-export const subscriptionEventTypeEnum = pgEnum("subscription_event_type", [
-  "charge",
-  "price_increase",
-  "missed",
-]);
+export const subscriptionStatusEnum = pgEnum("subscription_status", ["detected", "confirmed", "rejected", "container"]);
+export const subscriptionEventTypeEnum = pgEnum("subscription_event_type", ["charge", "price_increase", "missed"]);
 export const feedbackVerdictEnum = pgEnum("feedback_verdict", ["confirm", "reject"]);
 
 // jsonb payloads
@@ -152,10 +130,7 @@ export const subscriptions = pgTable(
     nextChargeAt: timestamp("next_charge_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    uniqueIndex("subscriptions_user_merchant_uq").on(t.userId, t.merchantId),
-    index("subscriptions_user_idx").on(t.userId),
-  ],
+  (t) => [uniqueIndex("subscriptions_user_merchant_uq").on(t.userId, t.merchantId), index("subscriptions_user_idx").on(t.userId)],
 );
 
 export const subscriptionEvents = pgTable(

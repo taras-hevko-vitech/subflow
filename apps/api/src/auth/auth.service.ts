@@ -1,12 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import {
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  ServiceUnavailableException,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { HttpException, HttpStatus, Inject, Injectable, ServiceUnavailableException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { ENV, type Env } from "../config/env";
@@ -51,12 +44,9 @@ export class AuthService {
     const [{ recent }] = (await this.db
       .select({ recent: sql<number>`count(*)::int` })
       .from(magicLinkTokens)
-      .where(
-        and(
-          eq(magicLinkTokens.email, normalized),
-          gt(magicLinkTokens.createdAt, sql`now() - interval '1 hour'`),
-        ),
-      )) as [{ recent: number }];
+      .where(and(eq(magicLinkTokens.email, normalized), gt(magicLinkTokens.createdAt, sql`now() - interval '1 hour'`)))) as [
+      { recent: number },
+    ];
     if (recent >= REQUEST_LIMIT) {
       throw new HttpException("too many requests", HttpStatus.TOO_MANY_REQUESTS);
     }
@@ -89,19 +79,12 @@ export class AuthService {
       .select()
       .from(magicLinkTokens)
       .where(
-        and(
-          eq(magicLinkTokens.tokenHash, hashToken(token)),
-          isNull(magicLinkTokens.consumedAt),
-          gt(magicLinkTokens.expiresAt, sql`now()`),
-        ),
+        and(eq(magicLinkTokens.tokenHash, hashToken(token)), isNull(magicLinkTokens.consumedAt), gt(magicLinkTokens.expiresAt, sql`now()`)),
       )
       .limit(1);
     if (!row) throw new UnauthorizedException("invalid or expired link");
 
-    await this.db
-      .update(magicLinkTokens)
-      .set({ consumedAt: new Date() })
-      .where(eq(magicLinkTokens.id, row.id));
+    await this.db.update(magicLinkTokens).set({ consumedAt: new Date() }).where(eq(magicLinkTokens.id, row.id));
 
     const [user] = await this.db
       .insert(users)
@@ -132,10 +115,7 @@ export class AuthService {
     }
     if (row.expiresAt < new Date()) throw new UnauthorizedException("refresh token expired");
 
-    await this.db
-      .update(refreshTokens)
-      .set({ rotatedAt: new Date() })
-      .where(eq(refreshTokens.id, row.id));
+    await this.db.update(refreshTokens).set({ rotatedAt: new Date() }).where(eq(refreshTokens.id, row.id));
     return this.issuePair(row.userId);
   }
 

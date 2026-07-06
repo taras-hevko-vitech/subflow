@@ -31,12 +31,7 @@ export interface BankStatementItem {
 
 export interface BankProvider {
   getClientInfo(token: string): Promise<BankClientInfo>;
-  getStatement(
-    token: string,
-    accountId: string,
-    from: Date,
-    to: Date,
-  ): Promise<BankStatementItem[]>;
+  getStatement(token: string, accountId: string, from: Date, to: Date): Promise<BankStatementItem[]>;
   setWebhook(token: string, url: string): Promise<void>;
 }
 

@@ -24,11 +24,7 @@ export class DataStack extends Stack {
       description: "Postgres ingress",
       allowAllOutbound: true,
     });
-    dbSg.addIngressRule(
-      ec2.Peer.ipv4(props.vpc.vpcCidrBlock),
-      ec2.Port.tcp(5432),
-      "VPC to Postgres",
-    );
+    dbSg.addIngressRule(ec2.Peer.ipv4(props.vpc.vpcCidrBlock), ec2.Port.tcp(5432), "VPC to Postgres");
 
     // db.t4g.micro, single-AZ, small gp3 — cheapest sane Postgres (~$15/mo). Postgres also
     // hosts the pg-boss queue schema (no Redis).
@@ -36,10 +32,7 @@ export class DataStack extends Stack {
       engine: rds.DatabaseInstanceEngine.postgres({
         version: rds.PostgresEngineVersion.VER_16,
       }),
-      instanceType: ec2.InstanceType.of(
-        ec2.InstanceClass.BURSTABLE4_GRAVITON,
-        ec2.InstanceSize.MICRO,
-      ),
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.BURSTABLE4_GRAVITON, ec2.InstanceSize.MICRO),
       vpc: props.vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       securityGroups: [dbSg],

@@ -16,11 +16,7 @@ import { JwtAuthGuard } from "./jwt.guard";
     }),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    JwtAuthGuard,
-    { provide: MAILER, useFactory: () => createMailer(loadEnv()) },
-  ],
+  providers: [AuthService, JwtAuthGuard, { provide: MAILER, useFactory: () => createMailer(loadEnv()) }],
   exports: [AuthService, JwtAuthGuard, MAILER],
 })
 export class AuthModule {}

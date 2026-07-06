@@ -31,10 +31,7 @@ export class MeController {
 
   @Post("device-tokens")
   @HttpCode(204)
-  async registerDevice(
-    @CurrentUser() user: AuthedUser,
-    @Body() dto: DeviceTokenDto,
-  ): Promise<void> {
+  async registerDevice(@CurrentUser() user: AuthedUser, @Body() dto: DeviceTokenDto): Promise<void> {
     await this.usersService.registerDeviceToken(user.id, dto.token, dto.platform);
   }
 }

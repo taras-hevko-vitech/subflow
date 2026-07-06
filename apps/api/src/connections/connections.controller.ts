@@ -20,20 +20,13 @@ export class ConnectionsController {
   constructor(private readonly connections: ConnectionsService) {}
 
   @Post("connections/mono/personal")
-  connectMono(
-    @CurrentUser() user: AuthedUser,
-    @Body() dto: ConnectMonoDto,
-  ): Promise<ConnectResult> {
+  connectMono(@CurrentUser() user: AuthedUser, @Body() dto: ConnectMonoDto): Promise<ConnectResult> {
     return this.connections.connectMonoPersonal(user.id, dto.token);
   }
 
   // mono account ids are opaque strings, not UUIDs — no ParseUUIDPipe here.
   @Patch("accounts/:id")
-  setTracked(
-    @CurrentUser() user: AuthedUser,
-    @Param("id") accountId: string,
-    @Body() dto: TrackAccountDto,
-  ) {
+  setTracked(@CurrentUser() user: AuthedUser, @Param("id") accountId: string, @Body() dto: TrackAccountDto) {
     return this.connections.setAccountTracked(user.id, accountId, dto.isTracked);
   }
 }

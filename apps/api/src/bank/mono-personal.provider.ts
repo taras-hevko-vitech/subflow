@@ -63,18 +63,10 @@ export class MonoPersonalProvider implements BankProvider {
     };
   }
 
-  async getStatement(
-    token: string,
-    accountId: string,
-    from: Date,
-    to: Date,
-  ): Promise<BankStatementItem[]> {
+  async getStatement(token: string, accountId: string, from: Date, to: Date): Promise<BankStatementItem[]> {
     const f = Math.floor(from.getTime() / 1000);
     const t = Math.floor(to.getTime() / 1000);
-    const items = await this.get<MonoStatementItem[]>(
-      `/personal/statement/${accountId}/${f}/${t}`,
-      token,
-    );
+    const items = await this.get<MonoStatementItem[]>(`/personal/statement/${accountId}/${f}/${t}`, token);
     return items.map((i) => ({
       id: i.id,
       time: i.time,
@@ -95,12 +87,7 @@ export class MonoPersonalProvider implements BankProvider {
     return (await this.request("GET", path, token)) as T;
   }
 
-  private async request(
-    method: "GET" | "POST",
-    path: string,
-    token: string,
-    body?: unknown,
-  ): Promise<unknown> {
+  private async request(method: "GET" | "POST", path: string, token: string, body?: unknown): Promise<unknown> {
     let lastError: unknown;
     for (let attempt = 0; attempt <= RETRIES; attempt++) {
       if (attempt > 0) await sleep(500 * 2 ** (attempt - 1));
@@ -124,11 +111,7 @@ export class MonoPersonalProvider implements BankProvider {
         if (!res.ok) throw new ProviderError(res.status, `mono ${res.status}`);
         return res.status === 204 ? undefined : await res.json();
       } catch (e) {
-        if (
-          e instanceof TokenRevokedError ||
-          e instanceof RateLimitedError ||
-          e instanceof ProviderError
-        ) {
+        if (e instanceof TokenRevokedError || e instanceof RateLimitedError || e instanceof ProviderError) {
           throw e;
         }
         lastError = e; // network / timeout → retry

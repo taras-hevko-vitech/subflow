@@ -16,13 +16,7 @@ export interface NormalizedMerchant {
 }
 
 /** Processor prefixes to drop, e.g. "PAYPAL *NETFLIX", "GPC *SPOTIFY", "SQ *GYM". */
-const PROCESSOR_PREFIXES: RegExp[] = [
-  /^paypal\s*\*\s*/i,
-  /^gpc\s*\*\s*/i,
-  /^sq\s*\*\s*/i,
-  /^tst\s*\*\s*/i,
-  /^www\./i,
-];
+const PROCESSOR_PREFIXES: RegExp[] = [/^paypal\s*\*\s*/i, /^gpc\s*\*\s*/i, /^sq\s*\*\s*/i, /^tst\s*\*\s*/i, /^www\./i];
 
 /** Known aggregate/billing tails collapsed to a canonical vendor token. */
 const REWRITES: Array<[RegExp, string]> = [
@@ -30,10 +24,7 @@ const REWRITES: Array<[RegExp, string]> = [
   [/google\s*\*/i, "google"],
 ];
 
-export function normalizeMerchant(
-  description: string | null | undefined,
-  mcc: number | null = null,
-): NormalizedMerchant {
+export function normalizeMerchant(description: string | null | undefined, mcc: number | null = null): NormalizedMerchant {
   let s = (description ?? "").toLowerCase().trim();
 
   for (const [re, to] of REWRITES) s = s.replace(re, to);

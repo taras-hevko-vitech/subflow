@@ -34,5 +34,4 @@ export const SubscriptionEventType = {
   PriceIncrease: "price_increase",
   Missed: "missed",
 } as const;
-export type SubscriptionEventType =
-  (typeof SubscriptionEventType)[keyof typeof SubscriptionEventType];
+export type SubscriptionEventType = (typeof SubscriptionEventType)[keyof typeof SubscriptionEventType];

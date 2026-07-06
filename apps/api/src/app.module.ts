@@ -10,16 +10,6 @@ import { MeModule } from "./me/me.module";
 import { AppLoggerModule } from "./observability/logging.module";
 
 @Module({
-  imports: [
-    ConfigModule,
-    AppLoggerModule,
-    DbModule,
-    JobsModule,
-    HealthModule,
-    AuthModule,
-    MeModule,
-    BankModule,
-    ConnectionsModule,
-  ],
+  imports: [ConfigModule, AppLoggerModule, DbModule, JobsModule, HealthModule, AuthModule, MeModule, BankModule, ConnectionsModule],
 })
 export class AppModule {}
