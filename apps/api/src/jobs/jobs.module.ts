@@ -1,11 +1,4 @@
-import {
-  Global,
-  Inject,
-  Logger,
-  Module,
-  type OnModuleDestroy,
-  type OnModuleInit,
-} from "@nestjs/common";
+import { Global, Inject, Logger, Module, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
 import PgBoss from "pg-boss";
 import { loadEnv } from "../config/env";
 

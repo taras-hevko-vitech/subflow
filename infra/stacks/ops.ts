@@ -58,11 +58,7 @@ export class OpsStack extends Stack {
   }
 }
 
-function threshold(
-  type: "ACTUAL" | "FORECASTED",
-  pct: number,
-  email: string,
-): budgets.CfnBudget.NotificationWithSubscribersProperty {
+function threshold(type: "ACTUAL" | "FORECASTED", pct: number, email: string): budgets.CfnBudget.NotificationWithSubscribersProperty {
   return {
     notification: {
       notificationType: type,

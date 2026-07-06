@@ -15,6 +15,8 @@ const EnvSchema = z.object({
   MAIL_TRANSPORT: z.enum(["log", "ses"]).default("log"),
   MAIL_FROM: z.string().default("Subflow <no-reply@subflow.app>"),
   AWS_REGION: z.string().default("eu-central-1"),
+  // bank integration (subF-8); overridable for local mock runs
+  MONO_BASE_URL: z.string().url().default("https://api.monobank.ua"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
