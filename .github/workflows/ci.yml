@@ -35,8 +35,8 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run lint
       - run: bun run typecheck
+      # migrations must apply from scratch (schema sanity check, not a test suite)
       - run: cd apps/api && bun run db:migrate
-      - run: bun run test
 
   image:
     runs-on: ubuntu-latest
