@@ -35,6 +35,20 @@ jobs:
           push: false
           tags: subflow-api:ci
 
+  infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: cd infra && bun install --frozen-lockfile
+      - run: cd infra && bun run typecheck
+      - run: cd infra && bun run synth --quiet
+
   # deploy: enabled in subF-5 once the AWS account + OIDC deploy role exist.
   # Assumes the OIDC role (no long-lived keys), pushes the image to ECR and updates
   # the ECS service / runs `cdk deploy`.
