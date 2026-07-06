@@ -5,6 +5,7 @@ import { BankModule } from "./bank/bank.module";
 import { ConfigModule } from "./config/config.module";
 import { ConnectionsModule } from "./connections/connections.module";
 import { DbModule } from "./db/db.module";
+import { DetectionModule } from "./detection/detection.module";
 import { HealthModule } from "./health/health.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { MeModule } from "./me/me.module";
@@ -24,6 +25,7 @@ import { WebhooksModule } from "./webhooks/webhooks.module";
     ConnectionsModule,
     BackfillModule,
     WebhooksModule,
+    DetectionModule,
   ],
 })
 export class AppModule {}
