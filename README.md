@@ -41,7 +41,7 @@ cd apps/api && bun run dev        # API on :3000, /health
 
 Skeleton check: `curl localhost:3000/health` → `{"status":"ok",...}`.
 
-Scripts (from the repo root): `bun run typecheck` · `bun run test` · `bun run lint` · `bun run build`.
+Scripts (from the repo root): `bun run typecheck` · `bun run lint` · `bun run build`.
 
 ## Data model
 

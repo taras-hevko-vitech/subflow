@@ -9,6 +9,12 @@ const EnvSchema = z.object({
   SENTRY_DSN: z.string().url().optional(),
   // base64 AES-256-GCM key (subF-7); sourced from Secrets Manager in prod.
   TOKEN_ENCRYPTION_KEY: z.string().min(1).optional(),
+  // auth (subF-6)
+  JWT_SECRET: z.string().min(16).default("dev-secret-change-me"),
+  APP_BASE_URL: z.string().url().default("http://localhost:3000"),
+  MAIL_TRANSPORT: z.enum(["log", "ses"]).default("log"),
+  MAIL_FROM: z.string().default("Subflow <no-reply@subflow.app>"),
+  AWS_REGION: z.string().default("eu-central-1"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
@@ -25,6 +31,9 @@ export function loadEnv(): Env {
     // Never log values — only the offending keys.
     const keys = [...new Set(parsed.error.issues.map((i) => i.path.join(".")))].join(", ");
     throw new Error(`Invalid environment configuration: ${keys}`);
+  }
+  if (parsed.data.NODE_ENV === "production" && parsed.data.JWT_SECRET === "dev-secret-change-me") {
+    throw new Error("JWT_SECRET must be set in production");
   }
   cached = parsed.data;
   return cached;
