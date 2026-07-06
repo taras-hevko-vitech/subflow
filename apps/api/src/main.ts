@@ -1,0 +1,19 @@
+import "reflect-metadata";
+import { NestFactory } from "@nestjs/core";
+import { Logger } from "nestjs-pino";
+import { AppModule } from "./app.module";
+import { loadEnv } from "./config/env";
+import { initSentry } from "./observability/sentry";
+
+async function bootstrap(): Promise<void> {
+  const env = loadEnv();
+  initSentry(env);
+
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(Logger));
+  app.enableShutdownHooks();
+
+  await app.listen(env.PORT, "0.0.0.0");
+}
+
+void bootstrap();
