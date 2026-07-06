@@ -1,8 +1,7 @@
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type * as schema from "./schema";
 import { type NewTransaction, transactions } from "./schema";
+import type { Db } from "./types";
 
-export type Db = NodePgDatabase<typeof schema>;
+export type { Db } from "./types";
 
 // Idempotent upsert keyed on the mono tx id (natural dedup PK). Re-delivered webhooks and
 // overlapping backfill windows (subF-9/subF-10) must never create duplicates.

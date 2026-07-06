@@ -188,6 +188,40 @@ export const detectionFeedback = pgTable("detection_feedback", {
   at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// --- auth (subF-6) ---
+// Keyed by email, not user id: requesting a link must not create a user (typo'd emails,
+// enumeration). The user row is created on verify. Only the sha256 hash is stored.
+export const magicLinkTokens = pgTable(
+  "magic_link_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("magic_link_tokens_email_idx").on(t.email)],
+);
+
+// Rotated on every use; a rotated hash presented again = reuse (theft signal) and revokes
+// the user's whole set. Only the sha256 hash is stored.
+export const refreshTokens = pgTable(
+  "refresh_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    rotatedAt: timestamp("rotated_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("refresh_tokens_user_idx").on(t.userId)],
+);
+
 // --- inferred types for the app layer ---
 export type User = typeof users.$inferSelect;
 export type BankConnection = typeof bankConnections.$inferSelect;
