@@ -1,0 +1,40 @@
+# Тікети MVP — Subflow (трекер підписок на monobank)
+Стек: Flutter (Riverpod · go_router · dio+OpenAPI) · NestJS/TS strict · PostgreSQL + pg-boss · Drizzle · AWS (ECS Fargate + RDS + ALB) через CDK v2 · SES · FCM/APNs · Sentry + PostHog · turborepo
+
+## Порядок виконання (критичний шлях)
+subF-1..3 (Фаза 0, паралельно) → subF-4 → subF-5 (infra) → subF-6, subF-7 → subF-8 → subF-9 → subF-10 → subF-11 (детекція на власній виписці) ⟶ 🚦ГЕЙТ A → subF-12 (🚦ГЕЙТ B) → subF-13 → subF-14, subF-15 → subF-16, subF-17 → subF-18 → subF-19. subF-20 — коли прийде апрув provider API mono.
+
+| # | Тикет | Фаза | Розмір | Блокери |
+|---|-------|------|--------|---------|
+| subF-1 | Розвідка: питання в TG-ком'юніті mono | 0 | XS | — |
+| subF-2 | Заявка на provider API | 0 | S | — |
+| subF-3 | Датасет виписок для детекції | 0 | S | — |
+| subF-4 | Каркас бекенду + CI/CD | 1 | S | — |
+| subF-5 | Інфраструктура AWS (CDK) | 1 | M | subF-4 + AWS-акаунт |
+| subF-6 | Auth (magic link, SES) + акаунти | 1 | S | subF-4 |
+| subF-7 | Схема БД (ядро домену, Drizzle) | 1 | S | subF-4 |
+| subF-8 | Інтеграція monobank (personal token) | 1 | M | subF-6, subF-7 |
+| subF-9 | Бекфіл виписки | 1 | M | subF-8 |
+| subF-10 | Вебхуки mono + watchdog | 1 | S/M | subF-8 |
+| subF-11 | Рушій детекції підписок | 2 | L | subF-7, subF-9 |
+| subF-12 | Офлайн-оцінка якості (GATE) | 2 | S | subF-3, subF-11 |
+| subF-13 | Каркас Flutter-застосунку | 3 | S | subF-6 |
+| subF-14 | Онбординг + підключення mono | 3 | M | subF-13, subF-8 |
+| subF-15 | Головний екран + картки підписок | 3 | M | subF-13, subF-11 |
+| subF-16 | Пуш-нотифікації | 3 | S | subF-13, subF-10, subF-11 |
+| subF-17 | Сервісні екрани (профіль, безпека) | 3 | S | subF-13 |
+| subF-18 | Дистрибуція: TestFlight + аналітика | 4 | S | subF-13..17 |
+| subF-19 | Перші 20–50 користувачів + інтерв'ю | 4 | S | subF-18 |
+| subF-20 | Provider API: «Увійти через monobank» | 4 | M | апрув subF-2 |
+
+## 🚦 Go/No-Go чекпоінти
+- **ГЕЙТ A** (кінець subF-11): детекція працює на власній виписці — всі відомі підписки знайдені, нуль хибних у high-confidence. NO-GO → ітерувати рушій, UI не чіпаємо.
+- **ГЕЙТ B** (subF-12): офлайн precision ≥90% на high-confidence + ≥1 «забута» підписка у ≥половини людей з датасету. Жорсткий гейт перед Фазою 3 (Flutter).
+
+## Зовнішні лід-тайм блокери (поза кодом, стартувати у Фазі 0)
+- Окремий AWS-акаунт (ще нема) — блокує `cdk deploy` (не блокує написання CDK-коду).
+- Apple Developer Program ($99/рік, individual) — лід-тайм дні; блокує APNs (subF-16) і TestFlight (subF-18).
+- Домен subflow.app (ще не зареєстровано) — потрібен для SES DKIM, ACM-cert, universal/app links. Реєструвати через Route53.
+- Юрформи немає — впливає на subF-2 (provider API); subF-1 має з'ясувати, чи приймають від фізособи.
+
+Поза скоупом MVP: мультибанк, email-парсинг, розшифровка агрегатів Apple/Google, авто-скасування, бюджети/категорії, веб-версія, монетизація (лише waitlist-сигнал), публічний реліз у сторах.

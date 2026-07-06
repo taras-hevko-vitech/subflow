@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+.turbo
+.git
+.github
+.idea
+infra/cdk.out
+apps/mobile
+tickets-mvp
+**/*.test.ts

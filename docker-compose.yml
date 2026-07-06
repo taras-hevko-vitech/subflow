@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: subflow
+      POSTGRES_PASSWORD: subflow
+      POSTGRES_DB: subflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - subflow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U subflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Optional: run the built API image locally. `docker compose --profile full up`.
+  # Day-to-day dev runs the API on the host (`cd apps/api && bun run dev`) against `db`.
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgres://subflow:subflow@db:5432/subflow
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ["full"]
+
+volumes:
+  subflow_pgdata:

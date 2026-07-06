@@ -1,0 +1,23 @@
+# deps / build
+node_modules/
+dist/
+.turbo/
+
+# env (keep .env.example)
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+
+# os / editor
+.DS_Store
+.idea/
+
+# cdk (subF-5)
+infra/cdk.out/
+
+# flutter (subF-13+)
+apps/mobile/.dart_tool/
+apps/mobile/build/
