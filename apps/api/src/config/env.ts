@@ -19,6 +19,8 @@ const EnvSchema = z.object({
   MONO_BASE_URL: z.string().url().default("https://api.monobank.ua"),
   // mono hard limit is 1 req/60s per token; lowered only in local verification runs
   MONO_LEASE_SECONDS: z.coerce.number().int().positive().default(60),
+  // public base for the mono webhook URL (prod: https://subflow.app); falls back to APP_BASE_URL
+  WEBHOOK_BASE_URL: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

@@ -10,8 +10,9 @@ import { accounts, bankConnections } from "../db/schema";
 import type { Db } from "../db/types";
 import { PG_BOSS } from "../jobs/jobs.module";
 
-// Queue name duplicated from backfill.service to avoid a module cycle (Backfill imports Connections).
+// Queue names duplicated from backfill/webhooks services to avoid module cycles (both import Connections).
 const QUEUE_BACKFILL_PLAN = "backfill.plan";
+const QUEUE_WEBHOOK_REGISTER = "webhook.register";
 
 export interface ConnectResult {
   connectionId: string;
@@ -104,11 +105,12 @@ export class ConnectionsService {
       }
     }
 
-    // Kick off the 12-month backfill (subF-9); newest 2 months land first.
+    // Kick off the 12-month backfill (subF-9) and webhook registration (subF-10).
     if (this.boss) {
       await this.boss.send(QUEUE_BACKFILL_PLAN, { connectionId: conn.id }, { retryLimit: 5, retryDelay: 30 });
+      await this.boss.send(QUEUE_WEBHOOK_REGISTER, { connectionId: conn.id }, { retryLimit: 8, retryDelay: 60 });
     } else {
-      this.logger.warn("pg-boss disabled — backfill not scheduled");
+      this.logger.warn("pg-boss disabled — backfill/webhook not scheduled");
     }
     return result;
   }

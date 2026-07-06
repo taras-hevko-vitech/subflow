@@ -56,6 +56,8 @@ export const bankConnections = pgTable("bank_connections", {
   status: connectionStatusEnum("status").notNull().default("active"),
   backfillProgress: jsonb("backfill_progress").$type<BackfillProgress>(),
   webhookRegisteredAt: timestamp("webhook_registered_at", { withTimezone: true }),
+  // bumped on every processed webhook event; the watchdog treats silence as suspect
+  lastWebhookAt: timestamp("last_webhook_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
