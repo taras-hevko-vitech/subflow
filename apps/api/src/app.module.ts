@@ -9,6 +9,7 @@ import { HealthModule } from "./health/health.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { MeModule } from "./me/me.module";
 import { AppLoggerModule } from "./observability/logging.module";
+import { WebhooksModule } from "./webhooks/webhooks.module";
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AppLoggerModule } from "./observability/logging.module";
     BankModule,
     ConnectionsModule,
     BackfillModule,
+    WebhooksModule,
   ],
 })
 export class AppModule {}
