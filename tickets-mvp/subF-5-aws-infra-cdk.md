@@ -18,4 +18,4 @@
 - [ ] Очікуваний steady-state ~$52–65/міс (домінує ALB ~$20 + RDS ~$15 + Fargate ~$12)
 
 ## Acceptance Criteria
-`cdk synth` проходить для всіх стеків; після створення акаунта + `cdk bootstrap` → `cdk deploy` піднімає ALB, `/healthz` зелений через ALB на HTTPS, secrets створені, Budget alarm видно в консолі, у VPC НЕМАЄ NAT Gateway. CI ассьюмить OIDC-роль і деплоїть без довгоживучих ключів.
+`cdk synth` проходить для всіх стеків; після створення акаунта + `cdk bootstrap` → `cdk deploy` піднімає ALB, `/health` зелений через ALB на HTTPS, secrets створені, Budget alarm видно в консолі, у VPC НЕМАЄ NAT Gateway. CI ассьюмить OIDC-роль і деплоїть без довгоживучих ключів.

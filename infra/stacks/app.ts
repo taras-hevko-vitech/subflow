@@ -66,7 +66,7 @@ export class AppStack extends Stack {
     });
 
     service.targetGroup.configureHealthCheck({
-      path: "/healthz",
+      path: "/health",
       healthyHttpCodes: "200",
     });
 

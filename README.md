@@ -35,10 +35,10 @@ tickets-mvp         беклог (subF-0-INDEX.md — вхідна точка)
 ```bash
 bun install
 docker compose up -d db          # локальний Postgres
-cd apps/api && bun run dev        # API на :3000, /healthz
+cd apps/api && bun run dev        # API на :3000, /health
 ```
 
-Перевірка каркасу: `curl localhost:3000/healthz` → `{"status":"ok",...}`.
+Перевірка каркасу: `curl localhost:3000/health` → `{"status":"ok",...}`.
 
 Скрипти (з кореня): `bun run typecheck` · `bun run test` · `bun run lint` · `bun run build`.
 

@@ -6,7 +6,7 @@
 |------|---------|
 | `Subflow-Network` | VPC, публічні сабнети, **без NAT Gateway** (guardrail) |
 | `Subflow-Data` | RDS Postgres `t4g.micro` single-AZ + gp3; Secrets Manager (DB creds + token-encryption key); SSM param |
-| `Subflow-App` | ECR; ECS cluster; Fargate (0.25 vCPU / 0.5 GB, 1 task, public IP); ALB; CloudWatch logs; health-check `/healthz` |
+| `Subflow-App` | ECR; ECS cluster; Fargate (0.25 vCPU / 0.5 GB, 1 task, public IP); ALB; CloudWatch logs; health-check `/health` |
 | `Subflow-Ops` | AWS Budget $55 (as code, алерти 50/85/100% + forecast → email); GitHub OIDC provider + deploy role |
 
 ## Оцінка вартості (steady-state, eu-central-1)
