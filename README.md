@@ -34,9 +34,11 @@ Requires: **Node 22** (`nvm use`), **bun**, **Docker** (for local Postgres).
 
 ```bash
 bun install
-docker compose up -d db          # local Postgres (port via DB_PORT, default 5432)
-cd apps/api && bun run db:migrate # apply migrations
-cd apps/api && bun run dev        # API on :3000, /health
+docker compose up -d db           # local Postgres (port via DB_PORT, default 5432)
+cd apps/api
+cp .env.example .env              # then set DATABASE_URL (mind the port) + TOKEN_ENCRYPTION_KEY
+bun run db:migrate                # apply migrations
+bun run dev                       # API on :3000, /health; loads .env automatically
 ```
 
 Skeleton check: `curl localhost:3000/health` → `{"status":"ok",...}`.
