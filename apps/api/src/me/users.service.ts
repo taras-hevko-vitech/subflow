@@ -1,7 +1,7 @@
 import { Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import { DB } from "../db/db.module";
-import { deviceTokens, magicLinkTokens, users } from "../db/schema";
+import { detectionFeedback, deviceTokens, magicLinkTokens, users } from "../db/schema";
 import type { Db } from "../db/types";
 
 @Injectable()
@@ -34,5 +34,10 @@ export class UsersService {
 
   async registerDeviceToken(userId: string, token: string, platform: string): Promise<void> {
     await this.db.insert(deviceTokens).values({ userId, token, platform }).onConflictDoNothing();
+  }
+
+  /** Free-form "detection got it wrong" feedback (subF-17). Null verdict = general note. */
+  async submitFeedback(userId: string, comment: string, subscriptionId?: string): Promise<void> {
+    await this.db.insert(detectionFeedback).values({ userId, comment, subscriptionId: subscriptionId ?? null });
   }
 }

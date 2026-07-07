@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, UseGuards } from "@nestjs/common";
 import { IsBoolean, IsString, MinLength } from "class-validator";
 import { type AuthedUser, CurrentUser, JwtAuthGuard } from "../auth/jwt.guard";
 import { type ConnectResult, ConnectionsService } from "./connections.service";
@@ -27,6 +27,12 @@ export class ConnectionsController {
   @Post("connections/mono/personal")
   connectMono(@CurrentUser() user: AuthedUser, @Body() dto: ConnectMonoDto): Promise<ConnectResult> {
     return this.connections.connectMonoPersonal(user.id, dto.token);
+  }
+
+  @Delete("connections/:id")
+  @HttpCode(204)
+  async disconnect(@CurrentUser() user: AuthedUser, @Param("id", ParseUUIDPipe) id: string): Promise<void> {
+    await this.connections.disconnect(user.id, id);
   }
 
   // mono account ids are opaque strings, not UUIDs — no ParseUUIDPipe here.

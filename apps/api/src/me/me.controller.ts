@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Post, UseGuards } from "@nestjs/common";
-import { IsIn, IsString, MinLength } from "class-validator";
+import { IsIn, IsOptional, IsString, IsUUID, MaxLength, MinLength } from "class-validator";
 import { type AuthedUser, CurrentUser, JwtAuthGuard } from "../auth/jwt.guard";
 import { UsersService } from "./users.service";
 
@@ -10,6 +10,17 @@ class DeviceTokenDto {
 
   @IsIn(["ios", "android"])
   platform!: "ios" | "android";
+}
+
+class FeedbackDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(2000)
+  comment!: string;
+
+  @IsOptional()
+  @IsUUID()
+  subscriptionId?: string;
 }
 
 @Controller("me")
@@ -33,5 +44,11 @@ export class MeController {
   @HttpCode(204)
   async registerDevice(@CurrentUser() user: AuthedUser, @Body() dto: DeviceTokenDto): Promise<void> {
     await this.usersService.registerDeviceToken(user.id, dto.token, dto.platform);
+  }
+
+  @Post("feedback")
+  @HttpCode(204)
+  async feedback(@CurrentUser() user: AuthedUser, @Body() dto: FeedbackDto): Promise<void> {
+    await this.usersService.submitFeedback(user.id, dto.comment, dto.subscriptionId);
   }
 }

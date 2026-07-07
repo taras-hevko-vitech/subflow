@@ -7,6 +7,10 @@ import 'features/auth/login_screen.dart';
 import 'features/auth/magic_link_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'features/profile/feedback_screen.dart';
+import 'features/profile/privacy_screen.dart';
+import 'features/profile/profile_screen.dart';
+import 'features/profile/security_screen.dart';
 
 /// Debug-only initial route override for UI screenshots without driving the whole auth flow:
 ///   flutter run --dart-define=DEV_ROUTE=/onboarding
@@ -36,6 +40,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/check-email', builder: (context, state) => CheckEmailScreen(email: state.extra as String?)),
       GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
       GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),
+      GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
+      GoRoute(path: '/security', builder: (context, state) => const SecurityScreen()),
+      GoRoute(path: '/feedback', builder: (context, state) => const FeedbackScreen()),
+      GoRoute(path: '/privacy', builder: (context, state) => const PrivacyScreen()),
       // magic-link entry: https://subflow.app/auth?token=... (or subflow://auth?token=...)
       GoRoute(path: '/auth', builder: (context, state) => MagicLinkScreen(token: state.uri.queryParameters['token'])),
     ],

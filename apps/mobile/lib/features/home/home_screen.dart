@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api/subflow_api.dart';
-import '../../core/auth/auth_controller.dart';
 import '../../widgets/widgets.dart';
 import '../subscriptions/subscriptions_view.dart';
 
@@ -21,12 +20,7 @@ class HomeScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.person_outline),
             tooltip: 'Профіль',
-            onPressed: () {}, // subF-17
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Вийти',
-            onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+            onPressed: () => context.push('/profile'),
           ),
         ],
       ),
