@@ -1,10 +1,40 @@
 {
   "subscriptions": [
-    { "name": "Netflix", "match": "netflix", "cadence": "monthly" },
-    { "name": "Spotify", "match": "spotify", "cadence": "monthly" },
-    { "name": "Apple (container)", "match": "apple", "cadence": "monthly" },
-    { "name": "MEGOGO", "match": "megogo", "cadence": "monthly", "forgotten": true },
-    { "name": "Pilates Studio", "match": "pilates", "cadence": "monthly" },
-    { "name": "Kyivstar", "match": "київстар", "cadence": "monthly" }
+    {
+      "name": "Netflix",
+      "match": "netflix",
+      "cadence": "monthly"
+    },
+    {
+      "name": "Spotify",
+      "match": "spotify",
+      "cadence": "monthly"
+    },
+    {
+      "name": "Apple (container)",
+      "match": "apple",
+      "cadence": "monthly"
+    },
+    {
+      "name": "MEGOGO",
+      "match": "megogo",
+      "cadence": "monthly",
+      "forgotten": true
+    },
+    {
+      "name": "Pilates Studio",
+      "match": "pilates",
+      "cadence": "monthly"
+    },
+    {
+      "name": "Kyivstar",
+      "match": "київстар",
+      "cadence": "monthly"
+    },
+    {
+      "name": "Claude (Anthropic)",
+      "match": "claude",
+      "cadence": "monthly"
+    }
   ]
 }

@@ -1206,5 +1206,53 @@
     "mcc": 4829,
     "amount": 150000,
     "currencyCode": 980
+  },
+  {
+    "id": "anthropic-0",
+    "time": "2026-07-06T10:00:00.000Z",
+    "description": "ANTHROPIC",
+    "mcc": 5734,
+    "amount": -53802,
+    "currencyCode": 980
+  },
+  {
+    "id": "anthropic-1",
+    "time": "2026-06-09T10:00:00.000Z",
+    "description": "Claude",
+    "mcc": 5734,
+    "amount": -540492,
+    "currencyCode": 980
+  },
+  {
+    "id": "anthropic-2",
+    "time": "2026-05-09T10:00:00.000Z",
+    "description": "Claude",
+    "mcc": 5734,
+    "amount": -528471,
+    "currencyCode": 980
+  },
+  {
+    "id": "anthropic-3",
+    "time": "2026-04-09T10:00:00.000Z",
+    "description": "Claude",
+    "mcc": 5734,
+    "amount": -526200,
+    "currencyCode": 980
+  },
+  {
+    "id": "anthropic-4",
+    "time": "2026-03-11T10:00:00.000Z",
+    "description": "Claude",
+    "mcc": 5734,
+    "amount": -528471,
+    "currencyCode": 980
+  },
+  {
+    "id": "anthropic-5",
+    "time": "2026-02-09T10:00:00.000Z",
+    "description": "Claude",
+    "mcc": 5734,
+    "amount": -519368,
+    "currencyCode": 980
   }
 ]

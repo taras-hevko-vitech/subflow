@@ -1,7 +1,7 @@
 // The detection engine (subF-11): transactions in → detected subscriptions out.
 // Pure function of its inputs — no DB, no clock (unless opts.now omitted) — so the offline
 // quality gate (subF-12) can replay labeled statements byte-for-byte.
-import { CADENCE_BANDS, analyzeCadence, median } from "./cadence";
+import { CADENCE_BANDS, FLOATING_CV, analyzeCadence, coefficientOfVariation, median } from "./cadence";
 import { isSubscriptionCandidate, normalizeMerchant } from "./normalize";
 import { type SeedMatch, matchSeed } from "./seed-catalog";
 import type { ChargeRef, DetectedSubscription, EngineOptions, TxInput } from "./types";
@@ -19,6 +19,10 @@ const MIN_CONFIDENCE = 0.5;
 const FLOATING_CAP = 0.79;
 /** Typical-price tolerance for 1–2 charge seed detection. */
 const PRICE_TOLERANCE = 0.15;
+/** Amount deviation from the series median that marks a one-off purchase (same as recentStableAmount). */
+const AMOUNT_OUTLIER_DEV = 0.5;
+/** An outlier trim must leave at least this many charges to be trusted. */
+const MIN_CORE_CHARGES = 3;
 /**
  * MCCs where weekly/monthly regularity is everyday life, not a subscription (groceries,
  * fast food, restaurants, fuel, taxi, pharmacies). Penalized unless the seed catalog vouches.
@@ -76,11 +80,15 @@ export function detectSubscriptions(txs: TxInput[], opts: EngineOptions = {}): D
 }
 
 function analyzeSeries(s: Series, now: number): DetectedSubscription | null {
-  const times = s.charges.map((c) => c.time);
-  const amounts = s.charges.map((c) => c.amount);
-  const analysis = analyzeCadence(times, amounts);
   const seed = s.seedMatch?.seed ?? null;
   const isContainer = !!seed?.container;
+  // One-off purchases at a subscription merchant (API-token top-ups, gift cards) skew the
+  // schedule and the confidence scores; drop them before analysis. Containers keep every
+  // charge — Apple/Google aggregate amounts legitimately vary.
+  const charges = isContainer ? s.charges : trimAmountOutliers(s.charges);
+  const times = charges.map((c) => c.time);
+  const amounts = charges.map((c) => c.amount);
+  const analysis = analyzeCadence(times, amounts);
 
   let cadence = analysis.cadence;
   let confidence = 0;
@@ -94,10 +102,10 @@ function analyzeSeries(s: Series, now: number): DetectedSubscription | null {
     if (analysis.floatingAmount) confidence = Math.min(confidence, FLOATING_CAP);
     // regular grocery/coffee/fuel runs look like subscriptions but aren't — damp non-seed series
     if (!s.seedMatch && s.mcc != null && NOISE_MCCS.has(s.mcc)) confidence -= NOISE_MCC_PENALTY;
-  } else if (seed && !isContainer && s.charges.length >= 1 && matchesTypicalPrice(seed.typicalPricesUah, amounts.at(-1) ?? 0)) {
+  } else if (seed && !isContainer && charges.length >= 1 && matchesTypicalPrice(seed.typicalPricesUah, amounts.at(-1) ?? 0)) {
     // seed + typical price → confirm-me candidate from 1–2 charges (yearly included)
     cadence = "monthly";
-    confidence = s.charges.length >= 2 ? 0.65 : 0.5;
+    confidence = charges.length >= 2 ? 0.65 : 0.5;
   } else if (!cadence && analysis.intervals.length >= 1 && seed) {
     // known service but odd interval — weak candidate
     cadence = "monthly";
@@ -108,14 +116,14 @@ function analyzeSeries(s: Series, now: number): DetectedSubscription | null {
 
   // containers: Apple/Google aggregates are real recurring charges we can't decompose —
   // always surfaced (as 'container'), regardless of scoring subtleties
-  if (isContainer && s.charges.length >= 2 && cadence) {
+  if (isContainer && charges.length >= 2 && cadence) {
     confidence = Math.max(confidence, 0.8);
   }
 
   if (confidence < MIN_CONFIDENCE) return null;
   if (!cadence) return null;
 
-  const lastCharge = s.charges.at(-1) as ChargeRef;
+  const lastCharge = charges.at(-1) as ChargeRef;
   const stableAmount = recentStableAmount(amounts);
   const intervalDays = analysis.medianIntervalDays || defaultIntervalDays(cadence);
 
@@ -128,15 +136,31 @@ function analyzeSeries(s: Series, now: number): DetectedSubscription | null {
     amountMinor: stableAmount,
     currencyCode: s.currencyCode,
     confidence: round3(Math.min(confidence, 1)),
-    firstSeen: (s.charges[0] as ChargeRef).time,
+    firstSeen: (charges[0] as ChargeRef).time,
     lastChargeAt: lastCharge.time,
     nextChargeAt: lastCharge.time + Math.round(intervalDays * DAY_MS),
-    charges: s.charges,
+    charges,
     medianIntervalDays: round3(intervalDays),
     intervalRegularity: round3(analysis.regularity),
     amountCv: round3(analysis.amountCv),
     floatingAmount: analysis.floatingAmount,
   };
+}
+
+/**
+ * Splits one-off purchases (amount off by >AMOUNT_OUTLIER_DEV from the series median) out of
+ * a recurring series. Trims only when a genuinely stable core remains: at least
+ * MIN_CORE_CHARGES charges whose amounts are non-floating — a utility-style series that
+ * legitimately swings past the threshold is returned untouched.
+ */
+function trimAmountOutliers(charges: ChargeRef[]): ChargeRef[] {
+  if (charges.length < MIN_CORE_CHARGES + 1) return charges;
+  const med = median(charges.map((c) => c.amount));
+  if (med <= 0) return charges;
+  const core = charges.filter((c) => Math.abs(c.amount - med) / med <= AMOUNT_OUTLIER_DEV);
+  if (core.length < MIN_CORE_CHARGES || core.length === charges.length) return charges;
+  if (coefficientOfVariation(core.map((c) => c.amount)) > FLOATING_CV) return charges;
+  return core;
 }
 
 /** Latest charge amount unless it's an outlier vs the recent median (refund glitches etc.). */
