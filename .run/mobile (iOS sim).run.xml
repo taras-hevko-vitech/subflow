@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="mobile (iOS sim)" type="FlutterRunConfigurationType" factoryName="Flutter">
+    <option name="filePath" value="$PROJECT_DIR$/apps/mobile/lib/main.dart" />
+    <option name="additionalArgs" value="--dart-define=API_BASE_URL=http://localhost:3000" />
+    <method v="2" />
+  </configuration>
+</component>

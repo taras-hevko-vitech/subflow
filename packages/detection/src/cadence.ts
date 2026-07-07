@@ -32,7 +32,7 @@ export function median(xs: number[]): number {
   return s.length % 2 ? (s[mid] as number) : ((s[mid - 1] as number) + (s[mid] as number)) / 2;
 }
 
-function coefficientOfVariation(xs: number[]): number {
+export function coefficientOfVariation(xs: number[]): number {
   if (xs.length < 2) return 0;
   const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
   if (mean === 0) return 0;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,12 +13,53 @@ import 'subscription_detail_sheet.dart';
 
 /// The aha screen (subF-15): the big ₴/month + ₴/year, a "confirm me" section for the
 /// 0.5–0.8 tier, then the full list sorted by cost. This screen sells the product.
-class SubscriptionsView extends ConsumerWidget {
+class SubscriptionsView extends ConsumerStatefulWidget {
   const SubscriptionsView({super.key, required this.backfillDone});
   final bool backfillDone;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SubscriptionsView> createState() => _SubscriptionsViewState();
+}
+
+class _SubscriptionsViewState extends ConsumerState<SubscriptionsView> {
+  // While the backfill is running a new statement window lands roughly every 60s
+  // (mono rate limit), so poll: without this the user sits on a stale empty list
+  // until they discover pull-to-refresh. AsyncValue keeps the previous data during
+  // the refetch (skipLoadingOnRefresh), so there is no visible flicker.
+  Timer? _poll;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncPolling();
+  }
+
+  @override
+  void didUpdateWidget(SubscriptionsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncPolling();
+  }
+
+  void _syncPolling() {
+    if (widget.backfillDone) {
+      _poll?.cancel();
+      _poll = null;
+    } else {
+      _poll ??= Timer.periodic(const Duration(seconds: 30), (_) {
+        ref.invalidate(subscriptionsProvider);
+        ref.invalidate(connectionsProvider); // refreshes backfillDone → stops polling when done
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final subs = ref.watch(subscriptionsProvider);
     return RefreshIndicator(
       onRefresh: () async {
@@ -27,7 +70,7 @@ class SubscriptionsView extends ConsumerWidget {
       child: subs.when(
         loading: () => const LoadingView(),
         error: (e, _) => ListView(children: [const SizedBox(height: 120), ErrorView(message: 'Помилка', onRetry: () => ref.invalidate(subscriptionsProvider))]),
-        data: (summary) => _Content(summary: summary, backfillDone: backfillDone),
+        data: (summary) => _Content(summary: summary, backfillDone: widget.backfillDone),
       ),
     );
   }
@@ -40,8 +83,9 @@ class _Content extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lapsed = summary.items.where((s) => s.lapsed).toList();
     final confirmable = summary.items.where((s) => s.needsConfirm).toList();
-    final confirmed = summary.items.where((s) => !s.needsConfirm).toList();
+    final confirmed = summary.items.where((s) => !s.needsConfirm && !s.lapsed).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
@@ -66,6 +110,16 @@ class _Content extends ConsumerWidget {
         if (confirmed.isNotEmpty)
           Text('Твої підписки', style: Theme.of(context).textTheme.titleMedium),
         for (final s in confirmed) SubscriptionCard(sub: s, onTap: () => SubscriptionDetailSheet.show(context, s.id)),
+        if (lapsed.isNotEmpty) ...[
+          const Divider(height: 32),
+          Text('Можливо, скасовані', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text('Давно не списувались — не рахуємо їх у суму.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 4),
+          for (final s in lapsed)
+            Opacity(opacity: 0.6, child: SubscriptionCard(sub: s, onTap: () => SubscriptionDetailSheet.show(context, s.id))),
+        ],
         if (summary.items.isEmpty) const Padding(padding: EdgeInsets.only(top: 60), child: EmptyView(title: 'Підписок не знайдено', subtitle: 'Якщо бекфіл ще йде — зачекай трохи.')),
       ],
     );

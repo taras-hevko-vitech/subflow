@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="mobile (Android emu)" type="FlutterRunConfigurationType" factoryName="Flutter">
+    <option name="filePath" value="$PROJECT_DIR$/apps/mobile/lib/main.dart" />
+    <!-- Android emulator reaches the host machine at 10.0.2.2, not localhost -->
+    <option name="additionalArgs" value="--dart-define=API_BASE_URL=http://10.0.2.2:3000" />
+    <method v="2" />
+  </configuration>
+</component>
