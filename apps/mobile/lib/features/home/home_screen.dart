@@ -14,16 +14,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final connections = ref.watch(connectionsProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Subflow'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            tooltip: 'Профіль',
-            onPressed: () => context.push('/profile'),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Підписки')),
       body: SafeArea(
         child: connections.when(
           loading: () => const LoadingView(),

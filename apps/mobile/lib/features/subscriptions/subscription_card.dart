@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/models.dart';
+import '../../theme.dart';
 
 /// Merchant avatar: seed logo when we have one, else a colored initial.
 class MerchantAvatar extends StatelessWidget {
@@ -24,6 +25,8 @@ class MerchantAvatar extends StatelessWidget {
   }
 }
 
+/// Subscription row per the aha-screen mockup: avatar · name + "щомісяця · 12 числа" ·
+/// amount + a right-side pill ("через 3 дні" / "завтра" / "нова").
 class SubscriptionCard extends StatelessWidget {
   const SubscriptionCard({super.key, required this.sub, required this.onTap});
   final SubscriptionView sub;
@@ -34,7 +37,7 @@ class SubscriptionCard extends StatelessWidget {
     final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
@@ -47,10 +50,10 @@ class SubscriptionCard extends StatelessWidget {
                 children: [
                   Text(sub.merchant.displayName, style: theme.textTheme.titleMedium, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
-                  Text(_subtitle(), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                  if (_badges.isNotEmpty) ...[
+                  Text(_subtitle(), style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  if (_extraBadges.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Wrap(spacing: 6, runSpacing: 4, children: _badges),
+                    Wrap(spacing: 6, runSpacing: 4, children: _extraBadges),
                   ],
                 ],
               ),
@@ -59,8 +62,10 @@ class SubscriptionCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(formatMoney(sub.amountMinor), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                Text(_cadence, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Text(formatMoney(sub.amountMinor, currencyCode: sub.currencyCode),
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                _StatusPill(sub: sub),
               ],
             ),
           ],
@@ -73,30 +78,65 @@ class SubscriptionCard extends StatelessWidget {
 
   String _subtitle() {
     final next = sub.nextChargeAt;
-    if (next == null) return sub.merchant.isSeed ? 'сервіс' : '';
-    return 'наступне: ${next.day.toString().padLeft(2, '0')}.${next.month.toString().padLeft(2, '0')}';
+    if (next == null || sub.lapsed) return _cadence;
+    return '$_cadence · ${next.day} числа';
   }
 
-  List<Widget> get _badges {
+  List<Widget> get _extraBadges {
     final out = <Widget>[];
-    if (sub.badges.increased) out.add(const _Badge('подорожчала', Colors.orange));
-    if (sub.badges.old) out.add(const _Badge('давня', Colors.blueGrey));
-    if (sub.badges.container) out.add(const _Badge('Apple/Google', Colors.grey));
+    if (sub.badges.increased) out.add(const _Badge('подорожчала'));
+    if (sub.badges.container) out.add(const _Badge('Apple/Google'));
     return out;
   }
 }
 
-class _Badge extends StatelessWidget {
-  const _Badge(this.label, this.color);
-  final String label;
-  final Color color;
+/// The right-side chip: urgency ("завтра", "через 3 дні"), novelty ("нова") or nothing.
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.sub});
+  final SubscriptionView sub;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final subflow = theme.extension<SubflowColors>();
+    final days = sub.daysToCharge;
+
+    String? label;
+    Color? bg;
+    Color? fg;
+    if (sub.lapsed) {
+      label = 'заснула';
+      bg = theme.colorScheme.surfaceContainerHigh;
+      fg = theme.colorScheme.onSurfaceVariant;
+    } else if (days != null && days <= 7) {
+      label = switch (days) { 0 => 'сьогодні', 1 => 'завтра', _ => 'через $days дн.' };
+      bg = subflow?.warningContainer;
+      fg = subflow?.onWarningContainer;
+    } else if (sub.isNew) {
+      label = 'нова';
+      bg = theme.colorScheme.primaryContainer;
+      fg = theme.colorScheme.onPrimaryContainer;
+    }
+    if (label == null) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+      child: Text(label, style: theme.textTheme.labelSmall?.copyWith(color: fg)),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  const _Badge(this.label);
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
-      child: Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+      decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(10)),
+      child: Text(label, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
     );
   }
 }
