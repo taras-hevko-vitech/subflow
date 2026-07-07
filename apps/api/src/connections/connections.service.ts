@@ -115,6 +115,24 @@ export class ConnectionsService {
     return result;
   }
 
+  /** The mobile app uses this to route: no active connection → onboarding, else → home. */
+  async listConnections(userId: string) {
+    const rows = await this.db.select().from(bankConnections).where(eq(bankConnections.userId, userId)).orderBy(bankConnections.createdAt);
+    return rows.map((c) => {
+      const p = c.backfillProgress;
+      return {
+        id: c.id,
+        provider: c.provider,
+        status: c.status,
+        backfill: {
+          totalWindows: p?.totalWindows ?? 0,
+          completedWindows: p?.completedWindows ?? 0,
+          done: p != null && p.totalWindows > 0 && p.completedWindows >= p.totalWindows,
+        },
+      };
+    });
+  }
+
   async setAccountTracked(userId: string, accountId: string, isTracked: boolean) {
     // ownership check: the account must belong to one of the user's connections
     const [owned] = await this.db

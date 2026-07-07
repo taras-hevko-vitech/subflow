@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { IsBoolean, IsString, MinLength } from "class-validator";
 import { type AuthedUser, CurrentUser, JwtAuthGuard } from "../auth/jwt.guard";
 import { type ConnectResult, ConnectionsService } from "./connections.service";
@@ -18,6 +18,11 @@ class TrackAccountDto {
 @UseGuards(JwtAuthGuard)
 export class ConnectionsController {
   constructor(private readonly connections: ConnectionsService) {}
+
+  @Get("connections")
+  list(@CurrentUser() user: AuthedUser) {
+    return this.connections.listConnections(user.id);
+  }
 
   @Post("connections/mono/personal")
   connectMono(@CurrentUser() user: AuthedUser, @Body() dto: ConnectMonoDto): Promise<ConnectResult> {
