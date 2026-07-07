@@ -1,0 +1,49 @@
+PODS:
+  - app_links (7.0.0):
+    - Flutter
+  - Flutter (1.0.0)
+  - flutter_secure_storage_darwin (10.0.0):
+    - Flutter
+    - FlutterMacOS
+  - package_info_plus (0.4.5):
+    - Flutter
+  - Sentry/HybridSDK (8.46.0)
+  - sentry_flutter (8.14.2):
+    - Flutter
+    - FlutterMacOS
+    - Sentry/HybridSDK (= 8.46.0)
+
+DEPENDENCIES:
+  - app_links (from `.symlinks/plugins/app_links/ios`)
+  - Flutter (from `Flutter`)
+  - flutter_secure_storage_darwin (from `.symlinks/plugins/flutter_secure_storage_darwin/darwin`)
+  - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
+  - sentry_flutter (from `.symlinks/plugins/sentry_flutter/ios`)
+
+SPEC REPOS:
+  trunk:
+    - Sentry
+
+EXTERNAL SOURCES:
+  app_links:
+    :path: ".symlinks/plugins/app_links/ios"
+  Flutter:
+    :path: Flutter
+  flutter_secure_storage_darwin:
+    :path: ".symlinks/plugins/flutter_secure_storage_darwin/darwin"
+  package_info_plus:
+    :path: ".symlinks/plugins/package_info_plus/ios"
+  sentry_flutter:
+    :path: ".symlinks/plugins/sentry_flutter/ios"
+
+SPEC CHECKSUMS:
+  app_links: a754cbec3c255bd4bbb4d236ecc06f28cd9a7ce8
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_secure_storage_darwin: acdb3f316ed05a3e68f856e0353b133eec373a23
+  package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
+  Sentry: da60d980b197a46db0b35ea12cb8f39af48d8854
+  sentry_flutter: 27892878729f42701297c628eb90e7c6529f3684
+
+PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
+
+COCOAPODS: 1.16.2
