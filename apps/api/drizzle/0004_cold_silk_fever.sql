@@ -1,0 +1,1 @@
+ALTER TABLE "detection_feedback" ALTER COLUMN "verdict" DROP NOT NULL;

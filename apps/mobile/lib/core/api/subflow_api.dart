@@ -45,6 +45,18 @@ class SubflowApi {
       data: comment == null ? null : {'comment': comment},
     );
   }
+
+  Future<void> disconnect(String connectionId) async {
+    await _dio.delete<void>('/connections/$connectionId');
+  }
+
+  Future<void> submitFeedback(String comment) async {
+    await _dio.post<void>('/me/feedback', data: {'comment': comment});
+  }
+
+  Future<void> deleteAccount() async {
+    await _dio.delete<void>('/me');
+  }
 }
 
 final subflowApiProvider = Provider<SubflowApi>((ref) => SubflowApi(ref.watch(dioProvider)));

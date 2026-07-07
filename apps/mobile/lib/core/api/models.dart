@@ -18,18 +18,20 @@ class BackfillProgress {
 }
 
 class Connection {
-  Connection({required this.id, required this.provider, required this.status, required this.backfill});
+  Connection({required this.id, required this.provider, required this.status, required this.backfill, this.lastSyncAt});
 
   factory Connection.fromJson(Map<String, dynamic> j) => Connection(
         id: j['id'] as String,
         provider: j['provider'] as String,
         status: j['status'] as String,
+        lastSyncAt: j['lastSyncAt'] == null ? null : DateTime.tryParse(j['lastSyncAt'] as String),
         backfill: BackfillProgress.fromJson(j['backfill'] as Map<String, dynamic>),
       );
 
   final String id;
   final String provider;
   final String status; // active | revoked | error
+  final DateTime? lastSyncAt;
   final BackfillProgress backfill;
 
   bool get isActive => status == 'active';

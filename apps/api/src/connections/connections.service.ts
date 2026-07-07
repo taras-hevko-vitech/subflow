@@ -124,6 +124,8 @@ export class ConnectionsService {
         id: c.id,
         provider: c.provider,
         status: c.status,
+        // last time we ingested something (webhook); falls back for the profile "synced …" line
+        lastSyncAt: c.lastWebhookAt ?? c.webhookRegisteredAt ?? c.createdAt,
         backfill: {
           totalWindows: p?.totalWindows ?? 0,
           completedWindows: p?.completedWindows ?? 0,
@@ -131,6 +133,19 @@ export class ConnectionsService {
         },
       };
     });
+  }
+
+  /** "Від'єднати банк": drop the connection (cascade wipes accounts → transactions). The
+   *  user's detected subscriptions are left; a reconnect + backfill refreshes them, and with
+   *  no active connection the app shows the connect CTA anyway. */
+  async disconnect(userId: string, connectionId: string): Promise<void> {
+    const [conn] = await this.db
+      .select({ id: bankConnections.id })
+      .from(bankConnections)
+      .where(and(eq(bankConnections.id, connectionId), eq(bankConnections.userId, userId)))
+      .limit(1);
+    if (!conn) throw new NotFoundException();
+    await this.db.delete(bankConnections).where(eq(bankConnections.id, connectionId));
   }
 
   async setAccountTracked(userId: string, accountId: string, isTracked: boolean) {

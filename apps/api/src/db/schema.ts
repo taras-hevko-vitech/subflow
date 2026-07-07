@@ -160,7 +160,8 @@ export const detectionFeedback = pgTable("detection_feedback", {
     onDelete: "set null",
   }),
   txId: text("tx_id").references(() => transactions.id, { onDelete: "set null" }),
-  verdict: feedbackVerdictEnum("verdict").notNull(),
+  // null verdict = free-form "detection got it wrong" feedback (subF-17); set for confirm/reject
+  verdict: feedbackVerdictEnum("verdict"),
   comment: text("comment"),
   at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
 });
