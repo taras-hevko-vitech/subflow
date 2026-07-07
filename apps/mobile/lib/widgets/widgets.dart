@@ -26,11 +26,20 @@ class AppCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainerHigh,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(padding: const EdgeInsets.all(16), child: child),
+    final theme = Theme.of(context);
+    // design 03: white card on cream with a feather shadow; in dark — tone separation only
+    final isLight = theme.brightness == Brightness.light;
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: isLight ? null : Border.all(color: theme.colorScheme.outline, width: 0.5),
+        boxShadow: isLight
+            ? const [BoxShadow(color: Color(0x0F2B2440), offset: Offset(0, 2), blurRadius: 8)]
+            : null,
+      ),
+      padding: const EdgeInsets.all(16),
+      child: child,
     );
   }
 }

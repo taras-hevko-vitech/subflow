@@ -5,14 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/models.dart';
 import '../../core/api/subflow_api.dart';
+import '../../core/motion.dart';
 import '../../widgets/widgets.dart';
 import 'share_card.dart';
 import 'subscription_actions.dart';
 import 'subscription_card.dart';
 import 'subscription_detail_sheet.dart';
 
-/// The aha screen (subF-15): the big ₴/month + ₴/year, a "confirm me" section for the
-/// 0.5–0.8 tier, then the full list sorted by cost. This screen sells the product.
+enum _Filter { all, soon, fresh }
+
+/// The aha screen (subF-15/23): the big ₴/month + ₴/year, filter chips, a "confirm me"
+/// section for the 0.5–0.8 tier, the list sorted by cost, and possibly-cancelled at
+/// the bottom. This screen sells the product.
 class SubscriptionsView extends ConsumerStatefulWidget {
   const SubscriptionsView({super.key, required this.backfillDone});
   final bool backfillDone;
@@ -27,6 +31,7 @@ class _SubscriptionsViewState extends ConsumerState<SubscriptionsView> {
   // until they discover pull-to-refresh. AsyncValue keeps the previous data during
   // the refetch (skipLoadingOnRefresh), so there is no visible flicker.
   Timer? _poll;
+  _Filter _filter = _Filter.all;
 
   @override
   void initState() {
@@ -70,90 +75,180 @@ class _SubscriptionsViewState extends ConsumerState<SubscriptionsView> {
       child: subs.when(
         loading: () => const LoadingView(),
         error: (e, _) => ListView(children: [const SizedBox(height: 120), ErrorView(message: 'Помилка', onRetry: () => ref.invalidate(subscriptionsProvider))]),
-        data: (summary) => _Content(summary: summary, backfillDone: widget.backfillDone),
+        data: (summary) => _Content(
+          summary: summary,
+          backfillDone: widget.backfillDone,
+          filter: _filter,
+          onFilter: (f) => setState(() => _filter = f),
+        ),
       ),
     );
   }
 }
 
 class _Content extends ConsumerWidget {
-  const _Content({required this.summary, required this.backfillDone});
+  const _Content({required this.summary, required this.backfillDone, required this.filter, required this.onFilter});
   final SubscriptionsSummary summary;
   final bool backfillDone;
+  final _Filter filter;
+  final ValueChanged<_Filter> onFilter;
+
+  /// The aha entrance (count-up + cascade) plays once per app session, not every rebuild.
+  static bool _entrancePlayed = false;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final play = !_entrancePlayed && summary.items.isNotEmpty;
+    if (play) _entrancePlayed = true;
+
+    final live = summary.items.where((s) => !s.lapsed).toList();
     final lapsed = summary.items.where((s) => s.lapsed).toList();
-    final confirmable = summary.items.where((s) => s.needsConfirm).toList();
-    final confirmed = summary.items.where((s) => !s.needsConfirm && !s.lapsed).toList();
+    final soon = live.where((s) => s.chargesSoon).toList();
+    final fresh = live.where((s) => s.isNew).toList();
+
+    final visible = switch (filter) { _Filter.all => live, _Filter.soon => soon, _Filter.fresh => fresh };
+    final confirmable = visible.where((s) => s.needsConfirm).toList();
+    final confirmed = visible.where((s) => !s.needsConfirm).toList();
+    var cascadeIndex = 0;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
       children: [
         if (!backfillDone) _AnalyzingBanner(),
-        _Hero(summary: summary),
-        const SizedBox(height: 8),
+        _Hero(summary: summary, play: play),
+        const SizedBox(height: 12),
         Center(
-          child: TextButton.icon(
-            onPressed: summary.items.isEmpty ? null : () => promptShare(context, summary),
-            icon: const Icon(Icons.ios_share),
-            label: const Text('Поділитись'),
+          child: PressScale(
+            onTap: summary.items.isEmpty ? null : () => promptShare(context, summary),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.ios_share, size: 18, color: theme.colorScheme.primary),
+                  const SizedBox(width: 6),
+                  Text('Поділитись', style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.primary)),
+                ],
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        if (live.isNotEmpty)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _FilterChip(label: 'Усі · ${live.length}', selected: filter == _Filter.all, onTap: () => onFilter(_Filter.all)),
+                const SizedBox(width: 8),
+                if (soon.isNotEmpty)
+                  _FilterChip(label: 'Скоро списання · ${soon.length}', selected: filter == _Filter.soon, onTap: () => onFilter(_Filter.soon)),
+                if (soon.isNotEmpty) const SizedBox(width: 8),
+                if (fresh.isNotEmpty)
+                  _FilterChip(label: 'Нові · ${fresh.length}', selected: filter == _Filter.fresh, onTap: () => onFilter(_Filter.fresh)),
+              ],
+            ),
+          ),
+        const SizedBox(height: 8),
         if (confirmable.isNotEmpty) ...[
-          Text('Схоже на підписку — підтверди', style: Theme.of(context).textTheme.titleMedium),
+          Text('Схоже на підписку — підтверди', style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
-          for (final s in confirmable) _ConfirmTile(sub: s),
+          for (final s in confirmable) CascadeIn(index: cascadeIndex++, play: play, child: _ConfirmTile(sub: s)),
           const Divider(height: 32),
         ],
-        if (confirmed.isNotEmpty)
-          Text('Твої підписки', style: Theme.of(context).textTheme.titleMedium),
-        for (final s in confirmed) SubscriptionCard(sub: s, onTap: () => SubscriptionDetailSheet.show(context, s.id)),
-        if (lapsed.isNotEmpty) ...[
+        if (confirmed.isNotEmpty) Text('Твої підписки', style: theme.textTheme.titleMedium),
+        for (final s in confirmed)
+          CascadeIn(
+            index: cascadeIndex++,
+            play: play,
+            child: SubscriptionCard(sub: s, onTap: () => SubscriptionDetailSheet.show(context, s.id)),
+          ),
+        if (filter == _Filter.all && lapsed.isNotEmpty) ...[
           const Divider(height: 32),
-          Text('Можливо, скасовані', style: Theme.of(context).textTheme.titleMedium),
+          Text('Можливо, скасовані', style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
           Text('Давно не списувались — не рахуємо їх у суму.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           const SizedBox(height: 4),
           for (final s in lapsed)
             Opacity(opacity: 0.6, child: SubscriptionCard(sub: s, onTap: () => SubscriptionDetailSheet.show(context, s.id))),
         ],
-        if (summary.items.isEmpty) const Padding(padding: EdgeInsets.only(top: 60), child: EmptyView(title: 'Підписок не знайдено', subtitle: 'Якщо бекфіл ще йде — зачекай трохи.')),
+        if (summary.items.isEmpty)
+          const Padding(padding: EdgeInsets.only(top: 60), child: EmptyView(title: 'Підписок не знайдено', subtitle: 'Якщо бекфіл ще йде — зачекай трохи.')),
       ],
     );
   }
 }
 
-/// The hero number counts up on first paint — the moment that sells the product.
+/// Hero per the mockup: label, the big monthly number counting up (easeOutExpo, haptic
+/// at the end), then the yearly pill starting 150ms later.
 class _Hero extends StatelessWidget {
-  const _Hero({required this.summary});
+  const _Hero({required this.summary, required this.play});
   final SubscriptionsSummary summary;
+  final bool play;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final liveCount = summary.items.where((s) => !s.lapsed).length;
     return Column(
       children: [
         const SizedBox(height: 8),
-        TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: summary.totalMonthlyMinor.toDouble()),
-          duration: const Duration(milliseconds: 900),
-          curve: Curves.easeOutCubic,
-          builder: (context, value, _) => Text(
-            formatMoney(value.round()),
-            style: theme.textTheme.displayLarge?.copyWith(fontWeight: FontWeight.w800, height: 1),
-          ),
+        Text('Підписки з\'їдають щомісяця',
+            style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        const SizedBox(height: 4),
+        CountUpText(
+          value: summary.totalMonthlyMinor,
+          format: formatMoney,
+          play: play,
+          haptic: true,
+          style: theme.textTheme.displayLarge,
         ),
-        Text('на місяць', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(color: theme.colorScheme.primaryContainer, borderRadius: BorderRadius.circular(20)),
-          child: Text('${formatMoney(summary.totalYearlyMinor)} на рік', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+          child: CountUpText(
+            value: summary.totalYearlyMinor,
+            format: (v) => '${formatMoney(v)} на рік · $liveCount підписок',
+            play: play,
+            delay: const Duration(milliseconds: 150),
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({required this.label, required this.selected, required this.onTap});
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Motion.emphasized,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(10),
+          border: selected ? null : Border.all(color: theme.colorScheme.outline),
+        ),
+        child: Text(label,
+            style: theme.textTheme.labelLarge?.copyWith(color: selected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface)),
+      ),
     );
   }
 }
@@ -191,7 +286,7 @@ class _ConfirmTile extends ConsumerWidget {
       onDismissed: (dir) => dir == DismissDirection.startToEnd ? actions.confirm(sub.id) : actions.reject(sub.id),
       child: Card(
         elevation: 0,
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: Theme.of(context).colorScheme.surfaceContainerHigh,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: Row(

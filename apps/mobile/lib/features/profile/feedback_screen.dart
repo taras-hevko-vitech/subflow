@@ -13,15 +13,24 @@ class FeedbackScreen extends ConsumerStatefulWidget {
 }
 
 class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
+  static const _reasons = [
+    'Це взагалі не підписка',
+    'Сума або дата неправильні',
+    'Це дублікат іншої підписки',
+    'Інше',
+  ];
+
   final _text = TextEditingController();
+  String? _reason;
   bool _busy = false;
 
   Future<void> _submit() async {
-    final text = _text.text.trim();
-    if (text.length < 3) return;
+    final reason = _reason;
+    if (reason == null) return;
+    final comment = _text.text.trim();
     setState(() => _busy = true);
     try {
-      await ref.read(subflowApiProvider).submitFeedback(text);
+      await ref.read(subflowApiProvider).submitFeedback(comment.isEmpty ? reason : '$reason: $comment');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Дякуємо! Врахуємо.')));
         Navigator.of(context).pop();
@@ -40,26 +49,34 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Детекція помилилась?')),
       body: SafeArea(
-        child: Padding(
+        child: ListView(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Що не так? Пропустили підписку, показали зайве, переплутали суму — напиши, і ми підкрутимо детекцію.',
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          children: [
+            Text(
+              'Розкажи, що не так — це напряму покращує розпізнавання.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 12),
+            for (final r in _reasons)
+              RadioListTile<String>(
+                value: r,
+                // ignore: deprecated_member_use
+                groupValue: _reason,
+                // ignore: deprecated_member_use
+                onChanged: (v) => setState(() => _reason = v),
+                title: Text(r),
+                contentPadding: EdgeInsets.zero,
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _text,
-                maxLines: 6,
-                maxLength: 2000,
-                decoration: const InputDecoration(hintText: 'Твій відгук…'),
-              ),
-              const SizedBox(height: 8),
-              PrimaryButton(label: 'Надіслати', busy: _busy, onPressed: _submit),
-            ],
-          ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _text,
+              maxLines: 4,
+              maxLength: 2000,
+              decoration: const InputDecoration(hintText: 'Розкажи детальніше (необов\'язково)'),
+            ),
+            const SizedBox(height: 8),
+            PrimaryButton(label: 'Надіслати', busy: _busy, onPressed: _reason == null ? null : _submit),
+          ],
         ),
       ),
     );

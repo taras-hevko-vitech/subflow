@@ -120,6 +120,7 @@ class SubscriptionView {
     required this.status,
     required this.lapsed,
     required this.nextChargeAt,
+    required this.firstSeen,
     required this.badges,
   });
 
@@ -135,6 +136,7 @@ class SubscriptionView {
         status: j['status'] as String,
         lapsed: j['lapsed'] as bool? ?? false,
         nextChargeAt: j['nextChargeAt'] == null ? null : DateTime.tryParse(j['nextChargeAt'] as String),
+        firstSeen: j['firstSeen'] == null ? null : DateTime.tryParse(j['firstSeen'] as String),
         badges: SubBadges.fromJson(j['badges'] as Map<String, dynamic>?),
       );
 
@@ -150,10 +152,24 @@ class SubscriptionView {
   /// no charge for >1.5 nominal intervals — looks cancelled, excluded from totals
   final bool lapsed;
   final DateTime? nextChargeAt;
+  final DateTime? firstSeen;
   final SubBadges badges;
 
   bool get isContainer => status == 'container';
   bool get needsConfirm => !lapsed && confidence < 0.8 && status == 'detected';
+
+  /// first charge seen within ~45 days — the "нова" chip on the aha screen
+  bool get isNew => firstSeen != null && DateTime.now().difference(firstSeen!).inDays <= 45;
+
+  /// days until the next charge (null when unknown or already past)
+  int? get daysToCharge {
+    final next = nextChargeAt;
+    if (next == null) return null;
+    final d = next.difference(DateTime.now()).inDays;
+    return d < 0 ? null : d;
+  }
+
+  bool get chargesSoon => !lapsed && (daysToCharge ?? 99) <= 7;
 }
 
 class SubscriptionEvent {
