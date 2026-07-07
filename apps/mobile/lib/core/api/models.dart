@@ -91,6 +91,20 @@ class MerchantView {
   final bool isSeed;
 }
 
+class SubBadges {
+  SubBadges({required this.increased, required this.old, required this.container});
+
+  factory SubBadges.fromJson(Map<String, dynamic>? j) => SubBadges(
+        increased: j?['increased'] as bool? ?? false,
+        old: j?['old'] as bool? ?? false,
+        container: j?['container'] as bool? ?? false,
+      );
+
+  final bool increased;
+  final bool old;
+  final bool container;
+}
+
 class SubscriptionView {
   SubscriptionView({
     required this.id,
@@ -99,9 +113,11 @@ class SubscriptionView {
     required this.amountMinor,
     required this.currencyCode,
     required this.monthlyEqMinor,
+    required this.yearlyEqMinor,
     required this.confidence,
     required this.status,
     required this.nextChargeAt,
+    required this.badges,
   });
 
   factory SubscriptionView.fromJson(Map<String, dynamic> j) => SubscriptionView(
@@ -111,9 +127,11 @@ class SubscriptionView {
         amountMinor: (j['amountMinor'] as num).toInt(),
         currencyCode: (j['currencyCode'] as num).toInt(),
         monthlyEqMinor: (j['monthlyEqMinor'] as num).toInt(),
+        yearlyEqMinor: (j['yearlyEqMinor'] as num?)?.toInt() ?? (j['monthlyEqMinor'] as num).toInt() * 12,
         confidence: (j['confidence'] as num).toDouble(),
         status: j['status'] as String,
         nextChargeAt: j['nextChargeAt'] == null ? null : DateTime.tryParse(j['nextChargeAt'] as String),
+        badges: SubBadges.fromJson(j['badges'] as Map<String, dynamic>?),
       );
 
   final String id;
@@ -122,12 +140,66 @@ class SubscriptionView {
   final int amountMinor;
   final int currencyCode;
   final int monthlyEqMinor;
+  final int yearlyEqMinor;
   final double confidence;
   final String status; // detected | confirmed | container
   final DateTime? nextChargeAt;
+  final SubBadges badges;
 
   bool get isContainer => status == 'container';
   bool get needsConfirm => confidence < 0.8 && status == 'detected';
+}
+
+class SubscriptionEvent {
+  SubscriptionEvent({required this.type, required this.at, this.oldAmount, this.newAmount});
+
+  factory SubscriptionEvent.fromJson(Map<String, dynamic> j) => SubscriptionEvent(
+        type: j['type'] as String,
+        at: DateTime.parse(j['at'] as String),
+        oldAmount: (j['oldAmount'] as num?)?.toInt(),
+        newAmount: (j['newAmount'] as num?)?.toInt(),
+      );
+
+  final String type; // charge | price_increase | missed
+  final DateTime at;
+  final int? oldAmount;
+  final int? newAmount;
+}
+
+class SubscriptionDetail {
+  SubscriptionDetail({
+    required this.id,
+    required this.merchant,
+    required this.cadence,
+    required this.amountMinor,
+    required this.yearlyEqMinor,
+    required this.status,
+    required this.firstSeen,
+    required this.nextChargeAt,
+    required this.events,
+  });
+
+  factory SubscriptionDetail.fromJson(Map<String, dynamic> j) => SubscriptionDetail(
+        id: j['id'] as String,
+        merchant: MerchantView.fromJson(j['merchant'] as Map<String, dynamic>),
+        cadence: j['cadence'] as String,
+        amountMinor: (j['amountMinor'] as num).toInt(),
+        yearlyEqMinor: (j['yearlyEqMinor'] as num).toInt(),
+        status: j['status'] as String,
+        firstSeen: DateTime.parse(j['firstSeen'] as String),
+        nextChargeAt: j['nextChargeAt'] == null ? null : DateTime.tryParse(j['nextChargeAt'] as String),
+        events: (j['events'] as List<dynamic>).map((e) => SubscriptionEvent.fromJson(e as Map<String, dynamic>)).toList(),
+      );
+
+  final String id;
+  final MerchantView merchant;
+  final String cadence;
+  final int amountMinor;
+  final int yearlyEqMinor;
+  final String status;
+  final DateTime firstSeen;
+  final DateTime? nextChargeAt;
+  final List<SubscriptionEvent> events;
 }
 
 class SubscriptionsSummary {

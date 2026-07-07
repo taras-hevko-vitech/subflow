@@ -15,8 +15,12 @@ export interface RecomputeJob {
 const ACTIVE_STATUSES = ["detected", "confirmed", "container"] as const;
 /** monthly-equivalent factors for totals */
 const MONTHLY_FACTOR = { weekly: 52 / 12, monthly: 1, yearly: 1 / 12 } as const;
+/** yearly-equivalent factors (for the per-subscription "costs you X/year") */
+const YEARLY_FACTOR = { weekly: 52, monthly: 12, yearly: 1 } as const;
 /** price bumps below this are billing noise (FX rounding etc.), not an increase */
 const PRICE_INCREASE_MIN_RATIO = 0.02;
+/** first_seen older than this → "давня" badge (a forgotten-subscription candidate) */
+const OLD_MONTHS = 6;
 
 @Injectable()
 export class DetectionService {
@@ -182,6 +186,11 @@ export class DetectionService {
       .innerJoin(merchants, eq(subscriptions.merchantId, merchants.id))
       .where(and(eq(subscriptions.userId, userId), inArray(subscriptions.status, [...ACTIVE_STATUSES])));
 
+    // one query for "recently increased" badges instead of N per-row lookups
+    const increasedIds = await this.recentlyIncreased(rows.map((r) => r.sub.id));
+    const oldCutoff = new Date();
+    oldCutoff.setMonth(oldCutoff.getMonth() - OLD_MONTHS);
+
     let totalMonthlyMinor = 0;
     const items = rows
       .map(({ sub, merchant }) => {
@@ -200,11 +209,17 @@ export class DetectionService {
           amountMinor: sub.amountMinor,
           currencyCode: sub.currencyCode,
           monthlyEqMinor: monthlyEq,
+          yearlyEqMinor: Math.round(sub.amountMinor * YEARLY_FACTOR[sub.cadence]),
           confidence: Number(sub.confidence),
           status: sub.status,
           firstSeen: sub.firstSeen,
           lastChargeAt: sub.lastChargeAt,
           nextChargeAt: sub.nextChargeAt,
+          badges: {
+            increased: increasedIds.has(sub.id),
+            old: sub.firstSeen < oldCutoff,
+            container: sub.status === "container",
+          },
         };
       })
       .sort((a, b) => b.monthlyEqMinor - a.monthlyEqMinor);
@@ -214,6 +229,57 @@ export class DetectionService {
       totalYearlyMinor: totalMonthlyMinor * 12,
       currencyCode: 980,
       subscriptions: items,
+    };
+  }
+
+  private async recentlyIncreased(subIds: string[]): Promise<Set<string>> {
+    if (subIds.length === 0) return new Set();
+    const rows = await this.db
+      .selectDistinct({ id: subscriptionEvents.subscriptionId })
+      .from(subscriptionEvents)
+      .where(and(inArray(subscriptionEvents.subscriptionId, subIds), eq(subscriptionEvents.type, "price_increase")));
+    return new Set(rows.map((r) => r.id));
+  }
+
+  /** Detail for the subscription card: charge history + price-change events + cancel guidance. */
+  async detail(userId: string, subscriptionId: string) {
+    const [row] = await this.db
+      .select({ sub: subscriptions, merchant: merchants })
+      .from(subscriptions)
+      .innerJoin(merchants, eq(subscriptions.merchantId, merchants.id))
+      .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.userId, userId)))
+      .limit(1);
+    if (!row) throw new NotFoundException();
+
+    const events = await this.db
+      .select()
+      .from(subscriptionEvents)
+      .where(eq(subscriptionEvents.subscriptionId, subscriptionId))
+      .orderBy(subscriptionEvents.at);
+
+    return {
+      id: row.sub.id,
+      merchant: {
+        displayName: row.merchant.displayName,
+        logoUrl: row.merchant.logoUrl,
+        cancelUrl: row.merchant.cancelUrl,
+        cancelInstructions: row.merchant.cancelInstructions,
+        isSeed: row.merchant.isSeed,
+      },
+      cadence: row.sub.cadence,
+      amountMinor: row.sub.amountMinor,
+      currencyCode: row.sub.currencyCode,
+      yearlyEqMinor: Math.round(row.sub.amountMinor * YEARLY_FACTOR[row.sub.cadence]),
+      status: row.sub.status,
+      firstSeen: row.sub.firstSeen,
+      lastChargeAt: row.sub.lastChargeAt,
+      nextChargeAt: row.sub.nextChargeAt,
+      events: events.map((e) => ({
+        type: e.type,
+        at: e.at,
+        oldAmount: e.oldAmount,
+        newAmount: e.newAmount,
+      })),
     };
   }
 

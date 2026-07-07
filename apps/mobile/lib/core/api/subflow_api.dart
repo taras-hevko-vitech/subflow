@@ -34,8 +34,16 @@ class SubflowApi {
     return SubscriptionsSummary.fromJson(res.data!);
   }
 
-  Future<void> setVerdict(String subscriptionId, {required bool confirm}) async {
-    await _dio.post<void>('/subscriptions/$subscriptionId/${confirm ? 'confirm' : 'reject'}');
+  Future<SubscriptionDetail> subscriptionDetail(String id) async {
+    final res = await _dio.get<Map<String, dynamic>>('/subscriptions/$id');
+    return SubscriptionDetail.fromJson(res.data!);
+  }
+
+  Future<void> setVerdict(String subscriptionId, {required bool confirm, String? comment}) async {
+    await _dio.post<void>(
+      '/subscriptions/$subscriptionId/${confirm ? 'confirm' : 'reject'}',
+      data: comment == null ? null : {'comment': comment},
+    );
   }
 }
 
@@ -49,4 +57,8 @@ final connectionsProvider = FutureProvider.autoDispose<List<Connection>>((ref) {
 
 final subscriptionsProvider = FutureProvider.autoDispose<SubscriptionsSummary>((ref) {
   return ref.watch(subflowApiProvider).subscriptions();
+});
+
+final subscriptionDetailProvider = FutureProvider.autoDispose.family<SubscriptionDetail, String>((ref, id) {
+  return ref.watch(subflowApiProvider).subscriptionDetail(id);
 });

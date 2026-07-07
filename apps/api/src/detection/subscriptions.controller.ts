@@ -21,6 +21,12 @@ export class SubscriptionsController {
     return this.detection.list(user.id);
   }
 
+  // Subscription card detail: charge/price history + cancel guidance.
+  @Get(":id")
+  detail(@CurrentUser() user: AuthedUser, @Param("id", ParseUUIDPipe) id: string) {
+    return this.detection.detail(user.id, id);
+  }
+
   @Post(":id/confirm")
   confirm(@CurrentUser() user: AuthedUser, @Param("id", ParseUUIDPipe) id: string, @Body() dto: VerdictDto) {
     return this.detection.setVerdict(user.id, id, "confirm", dto.comment);
