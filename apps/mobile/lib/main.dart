@@ -12,7 +12,7 @@ import 'theme.dart';
 
 /// Debug-only: pre-seed an access token so the authed screens can be screenshotted
 /// without driving the (dialog-gated) deep-link flow. Never runs in release.
-///   flutter run --dart-define=DEV_TOKEN=<jwt> --dart-define=DEV_ROUTE=/home
+///   flutter run --dart-define=DEV_TOKEN=`jwt` --dart-define=DEV_ROUTE=/home
 const _devToken = String.fromEnvironment('DEV_TOKEN');
 
 Future<void> main() async {
