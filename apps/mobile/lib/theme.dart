@@ -215,6 +215,27 @@ ThemeData buildTheme(Brightness brightness) {
       contentTextStyle: textTheme.bodyMedium?.copyWith(color: isLight ? Colors.white : scheme.onSurface),
     ),
     dividerTheme: DividerThemeData(color: scheme.outline.withValues(alpha: 0.5), thickness: 1),
+    // mockup bottom nav: flat on surfaceContainerLow, no indicator pill, 11px labels,
+    // filled violet icon for the active tab
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: scheme.surfaceContainerLow,
+      elevation: 0,
+      height: 64,
+      indicatorColor: Colors.transparent,
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => IconThemeData(
+          size: 24,
+          color: states.contains(WidgetState.selected) ? scheme.primary : scheme.onSurfaceVariant,
+        ),
+      ),
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (states) => GoogleFonts.golosText(
+          fontSize: 11,
+          fontWeight: states.contains(WidgetState.selected) ? FontWeight.w600 : FontWeight.w500,
+          color: states.contains(WidgetState.selected) ? scheme.primary : scheme.onSurfaceVariant,
+        ),
+      ),
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: scheme.surface,
       foregroundColor: scheme.onSurface,

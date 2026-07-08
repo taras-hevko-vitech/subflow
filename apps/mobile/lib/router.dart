@@ -69,17 +69,21 @@ class _AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: shell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Головна'),
-          NavigationDestination(
-              icon: Icon(Icons.notifications_none), selectedIcon: Icon(Icons.notifications), label: 'Сповіщення'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Профіль'),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: scheme.outline.withValues(alpha: 0.6)))),
+        child: NavigationBar(
+          selectedIndex: shell.currentIndex,
+          onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Головна'),
+            NavigationDestination(
+                icon: Icon(Icons.notifications_none), selectedIcon: Icon(Icons.notifications), label: 'Сповіщення'),
+            NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Профіль'),
+          ],
+        ),
       ),
     );
   }

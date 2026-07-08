@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/api/models.dart';
 import '../../core/api/subflow_api.dart';
@@ -113,28 +114,11 @@ class _Content extends ConsumerWidget {
     var cascadeIndex = 0;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
       children: [
         if (!backfillDone) _AnalyzingBanner(),
         _Hero(summary: summary, play: play),
-        const SizedBox(height: 12),
-        Center(
-          child: PressScale(
-            onTap: summary.items.isEmpty ? null : () => promptShare(context, summary),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.ios_share, size: 18, color: theme.colorScheme.primary),
-                  const SizedBox(width: 6),
-                  Text('Поділитись', style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.primary)),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         if (live.isNotEmpty)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -143,26 +127,40 @@ class _Content extends ConsumerWidget {
                 _FilterChip(label: 'Усі · ${live.length}', selected: filter == _Filter.all, onTap: () => onFilter(_Filter.all)),
                 const SizedBox(width: 8),
                 if (soon.isNotEmpty)
-                  _FilterChip(label: 'Скоро списання · ${soon.length}', selected: filter == _Filter.soon, onTap: () => onFilter(_Filter.soon)),
+                  _FilterChip(
+                      label: 'Скоро списання · ${soon.length}',
+                      kind: _ChipKind.soon,
+                      selected: filter == _Filter.soon,
+                      onTap: () => onFilter(_Filter.soon)),
                 if (soon.isNotEmpty) const SizedBox(width: 8),
                 if (fresh.isNotEmpty)
-                  _FilterChip(label: 'Нові · ${fresh.length}', selected: filter == _Filter.fresh, onTap: () => onFilter(_Filter.fresh)),
+                  _FilterChip(
+                      label: 'Нові · ${fresh.length}',
+                      kind: _ChipKind.fresh,
+                      selected: filter == _Filter.fresh,
+                      onTap: () => onFilter(_Filter.fresh)),
               ],
             ),
           ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         if (confirmable.isNotEmpty) ...[
           Text('Схоже на підписку — підтверди', style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
           for (final s in confirmable) CascadeIn(index: cascadeIndex++, play: play, child: _ConfirmTile(sub: s)),
           const Divider(height: 32),
         ],
-        if (confirmed.isNotEmpty) Text('Твої підписки', style: theme.textTheme.titleMedium),
+        if (confirmed.isNotEmpty) ...[
+          Text('Твої підписки', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+        ],
         for (final s in confirmed)
           CascadeIn(
             index: cascadeIndex++,
             play: play,
-            child: SubscriptionCard(sub: s, onTap: () => SubscriptionDetailSheet.show(context, s.id)),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: SubscriptionCard(sub: s, onTap: () => SubscriptionDetailSheet.show(context, s.id)),
+            ),
           ),
         if (filter == _Filter.all && lapsed.isNotEmpty) ...[
           const Divider(height: 32),
@@ -170,9 +168,12 @@ class _Content extends ConsumerWidget {
           const SizedBox(height: 4),
           Text('Давно не списувались — не рахуємо їх у суму.',
               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           for (final s in lapsed)
-            Opacity(opacity: 0.6, child: SubscriptionCard(sub: s, onTap: () => SubscriptionDetailSheet.show(context, s.id))),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Opacity(opacity: 0.6, child: SubscriptionCard(sub: s, onTap: () => SubscriptionDetailSheet.show(context, s.id))),
+            ),
         ],
         if (summary.items.isEmpty)
           const Padding(padding: EdgeInsets.only(top: 60), child: EmptyView(title: 'Підписок не знайдено', subtitle: 'Якщо бекфіл ще йде — зачекай трохи.')),
@@ -181,73 +182,113 @@ class _Content extends ConsumerWidget {
   }
 }
 
-/// Hero per the mockup: label, the big monthly number counting up (easeOutExpo, haptic
-/// at the end), then the yearly pill starting 150ms later.
-class _Hero extends StatelessWidget {
+/// Hero per the mockup: a violet card — label, the big white number counting up
+/// (easeOutExpo, haptic at the end), the yearly line and a share pill inside.
+class _Hero extends ConsumerWidget {
   const _Hero({required this.summary, required this.play});
   final SubscriptionsSummary summary;
   final bool play;
 
+  // fixed brand violet in both themes — the mockup keeps the hero identical
+  static const _violet = Color(0xFF6B5CE7);
+  static const _label = Color(0xFFCFC7FF);
+  static const _line = Color(0xFFE4DFFF);
+
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
     final liveCount = summary.items.where((s) => !s.lapsed).length;
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        Text('Підписки з\'їдають щомісяця',
-            style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        const SizedBox(height: 4),
-        CountUpText(
-          value: summary.totalMonthlyMinor,
-          format: formatMoney,
-          play: play,
-          haptic: true,
-          style: theme.textTheme.displayLarge,
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(color: theme.colorScheme.primaryContainer, borderRadius: BorderRadius.circular(20)),
-          child: CountUpText(
-            value: summary.totalYearlyMinor,
-            format: (v) => '${formatMoney(v)} на рік · $liveCount підписок',
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+      decoration: BoxDecoration(color: _violet, borderRadius: BorderRadius.circular(22)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Підписки з\'їдають щомісяця',
+              style: GoogleFonts.golosText(fontSize: 13, fontWeight: FontWeight.w500, color: _label)),
+          const SizedBox(height: 6),
+          CountUpText(
+            value: summary.totalMonthlyMinor,
+            format: formatMoney,
             play: play,
-            delay: const Duration(milliseconds: 150),
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onPrimaryContainer,
-              fontWeight: FontWeight.w600,
+            haptic: true,
+            style: GoogleFonts.rubik(
+              fontSize: 44,
+              height: 1,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.44,
+              color: Colors.white,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: CountUpText(
+                  value: summary.totalYearlyMinor,
+                  format: (v) => '${formatMoney(v)} на рік · $liveCount підписок',
+                  play: play,
+                  delay: const Duration(milliseconds: 150),
+                  style: GoogleFonts.golosText(fontSize: 14, fontWeight: FontWeight.w500, color: _line),
+                ),
+              ),
+              PressScale(
+                onTap: summary.items.isEmpty ? null : () => promptShare(context, summary),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.ios_share, size: 17, color: Colors.white),
+                      const SizedBox(width: 6),
+                      Text('Поділитись', style: GoogleFonts.golosText(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
 
+enum _ChipKind { neutral, soon, fresh }
+
+/// Filter chips per the mockup: the active one is ink with white text; the semantic
+/// ones keep their tint when idle (amber for "скоро", violet for "нові").
 class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.label, required this.selected, required this.onTap});
+  const _FilterChip({required this.label, required this.selected, required this.onTap, this.kind = _ChipKind.neutral});
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final _ChipKind kind;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final ink = theme.colorScheme.onSurface;
+    final (bg, fg) = selected
+        ? (ink, theme.colorScheme.surface)
+        : switch (kind) {
+            _ChipKind.soon => (const Color(0xFFFFEFC9), const Color(0xFF8A5A00)),
+            _ChipKind.fresh => (const Color(0xFFE7E2FF), const Color(0xFF4A3DB8)),
+            _ChipKind.neutral => (theme.colorScheme.surfaceContainerLow, theme.colorScheme.onSurfaceVariant),
+          };
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(999),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Motion.emphasized,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(10),
-          border: selected ? null : Border.all(color: theme.colorScheme.outline),
-        ),
-        child: Text(label,
-            style: theme.textTheme.labelLarge?.copyWith(color: selected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface)),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+        child: Text(label, style: GoogleFonts.golosText(fontSize: 12, fontWeight: FontWeight.w500, color: fg)),
       ),
     );
   }
@@ -291,7 +332,7 @@ class _ConfirmTile extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: Row(
             children: [
-              Expanded(child: SubscriptionCard(sub: sub, onTap: () => SubscriptionDetailSheet.show(context, sub.id))),
+              Expanded(child: SubscriptionCard(sub: sub, flat: true, onTap: () => SubscriptionDetailSheet.show(context, sub.id))),
               IconButton(icon: const Icon(Icons.close), color: Colors.red, onPressed: () => actions.reject(sub.id)),
               IconButton(icon: const Icon(Icons.check), color: Colors.green, onPressed: () => actions.confirm(sub.id)),
             ],
