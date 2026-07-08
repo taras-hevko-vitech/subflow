@@ -64,7 +64,7 @@ class _Body extends ConsumerWidget {
       children: [
         Row(
           children: [
-            MerchantAvatar(merchant: detail.merchant, radius: 28),
+            MerchantAvatar(merchant: detail.merchant, size: 56),
             const SizedBox(width: 14),
             Expanded(
               child: Column(

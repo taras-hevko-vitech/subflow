@@ -1,5 +1,39 @@
 import 'package:flutter/material.dart';
 
+/// The Subflow mark (design Етап 1): an S-flow stroke with coral + amber dots.
+/// Geometry lifted verbatim from the approved SVG (88×88 viewBox).
+class SubflowMark extends StatelessWidget {
+  const SubflowMark({super.key, this.size = 28});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(size: Size.square(size), painter: _MarkPainter());
+  }
+}
+
+class _MarkPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final k = size.width / 88;
+    final stroke = Paint()
+      ..color = const Color(0xFF6B5CE7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10 * k
+      ..strokeCap = StrokeCap.round;
+    final path = Path()
+      ..moveTo(30 * k, 24 * k)
+      ..arcToPoint(Offset(45 * k, 39 * k), radius: Radius.circular(15 * k))
+      ..arcToPoint(Offset(60 * k, 54 * k), radius: Radius.circular(15 * k), clockwise: false);
+    canvas.drawPath(path, stroke);
+    canvas.drawCircle(Offset(30 * k, 24 * k), 7.5 * k, Paint()..color = const Color(0xFFFF7A59));
+    canvas.drawCircle(Offset(60 * k, 63 * k), 7.5 * k, Paint()..color = const Color(0xFFFFC957));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 /// Base component set (subF-13). Small on purpose — grows with real screens.
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({super.key, required this.label, this.onPressed, this.busy = false});
