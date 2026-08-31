@@ -16,7 +16,10 @@ COPY apps/api ./apps/api
 RUN bun run --filter '@subflow/shared' build \
   && bun run --filter '@subflow/detection' build \
   && bun run --filter '@subflow/api' build
-# drop dev dependencies so the runtime image ships prod deps only
+
+# --- prune (separate stage so `build` keeps dev deps, e.g. drizzle-kit for
+# the compose `migrate` one-shot) ---
+FROM build AS prune
 RUN bun install --frozen-lockfile --production
 
 # --- runtime (node) ---
@@ -25,6 +28,6 @@ ENV NODE_ENV=production
 WORKDIR /repo
 # copy the whole pruned tree: bun spreads deps across root + per-package
 # node_modules, so a wholesale copy is the reliable way to satisfy node's resolver.
-COPY --from=build /repo ./
+COPY --from=prune /repo ./
 EXPOSE 3000
 CMD ["node", "apps/api/dist/main.js"]
