@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_controller.dart';
 import '../../widgets/widgets.dart';
@@ -18,6 +21,46 @@ class _CheckEmailScreenState extends ConsumerState<CheckEmailScreen> {
   final _token = TextEditingController();
   bool _busy = false;
   String? _error;
+
+  // resend cooldown per the mockup: "Надіслати ще раз · 0:42"
+  static const _cooldown = 60;
+  int _secondsLeft = _cooldown;
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _startCooldown();
+  }
+
+  void _startCooldown() {
+    _tick?.cancel();
+    setState(() => _secondsLeft = _cooldown);
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (_secondsLeft <= 1) {
+        _tick?.cancel();
+      }
+      setState(() => _secondsLeft = (_secondsLeft - 1).clamp(0, _cooldown));
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _resend() async {
+    final email = widget.email;
+    if (email == null) return;
+    try {
+      await ref.read(authControllerProvider.notifier).requestMagicLink(email);
+      _startCooldown();
+    } catch (_) {
+      setState(() => _error = 'Не вдалось надіслати ще раз. Спробуй пізніше.');
+    }
+  }
 
   /// Accepts either a bare token or the whole pasted link (?token=...).
   Future<void> _verify() async {
@@ -47,21 +90,46 @@ class _CheckEmailScreenState extends ConsumerState<CheckEmailScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Перевір пошту')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              AppCard(
-                child: Text(
-                  'Ми надіслали лінк для входу на\n${widget.email ?? 'твою пошту'}.\n\n'
-                  'Відкрий лист на цьому пристрої й тапни лінк — застосунок відкриється сам.',
-                  style: theme.textTheme.bodyLarge,
+              const Spacer(),
+              CircleAvatar(
+                radius: 36,
+                backgroundColor: theme.colorScheme.primaryContainer,
+                child: Icon(Icons.mark_email_unread_outlined, size: 36, color: theme.colorScheme.onPrimaryContainer),
+              ),
+              const SizedBox(height: 20),
+              Text('Перевір пошту', textAlign: TextAlign.center, style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 8),
+              Text.rich(
+                TextSpan(
+                  text: 'Надіслали посилання для входу на\n',
+                  children: [
+                    TextSpan(text: widget.email ?? 'твою пошту', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const TextSpan(text: '. Лінк діє 15 хвилин.'),
+                  ],
                 ),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 24),
+              TextButton(
+                onPressed: _secondsLeft > 0 ? null : _resend,
+                child: Text(
+                  _secondsLeft > 0
+                      ? 'Надіслати ще раз · 0:${_secondsLeft.toString().padLeft(2, '0')}'
+                      : 'Надіслати ще раз',
+                ),
+              ),
+              TextButton(
+                onPressed: () => context.go('/login'),
+                child: Text('Не той email? Змінити', style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+              ),
+              const Spacer(),
               // Fallback while universal links wait for the subflow.app domain (and always
               // handy in dev): paste the link/token manually.
               Text(

@@ -45,36 +45,62 @@ class _ShareCardBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const w = 1080.0;
+    // brand palette (design system 01) — the card renders off-screen, theme-independent
+    const violet = Color(0xFF6B5CE7);
+    const ink = Color(0xFF231A66);
+    const cream = Color(0xFFFFF6EC);
+    const coral = Color(0xFFFF7A59);
+
+    final live = summary.items.where((s) => !s.lapsed).toList()..sort((a, b) => b.yearlyEqMinor - a.yearlyEqMinor);
+    final top = live.take(2).toList();
+    final restCount = live.length - top.length;
+    final restYearly = live.skip(2).fold(0, (sum, s) => sum + s.yearlyEqMinor);
+
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Container(
-        width: w,
+        width: 1080,
         padding: const EdgeInsets.all(72),
         decoration: const BoxDecoration(
-          gradient: LinearGradient(colors: [Color(0xFF2E6BE6), Color(0xFF1B3B8B)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          gradient: LinearGradient(colors: [violet, ink], begin: Alignment.topLeft, end: Alignment.bottomRight),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Subflow', style: TextStyle(color: Colors.white70, fontSize: 40, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 60),
-            Text('Знайшлось', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 44)),
-            Text('${summary.items.length} підписок', style: const TextStyle(color: Colors.white, fontSize: 96, fontWeight: FontWeight.w800, height: 1)),
-            const SizedBox(height: 40),
-            if (showAmounts)
-              Text('на ${formatMoney(summary.totalYearlyMinor)} на рік 😱',
-                  style: const TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w700))
-            else
-              const Text('а скільки в тебе? 👀', style: TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 60),
-            const Text('subflow.app', style: TextStyle(color: Colors.white70, fontSize: 32)),
+            const Text('subflow', style: TextStyle(color: cream, fontSize: 44, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 56),
+            const Text('Мої підписки з\'їдають', style: TextStyle(color: cream, fontSize: 48)),
+            if (showAmounts) ...[
+              Text(formatMoney(summary.totalYearlyMinor),
+                  style: const TextStyle(color: Colors.white, fontSize: 120, fontWeight: FontWeight.w800, height: 1.1)),
+              const Text('на рік 🤯', style: TextStyle(color: cream, fontSize: 48)),
+            ] else
+              Text('${summary.items.length} підписок 🤯',
+                  style: const TextStyle(color: Colors.white, fontSize: 96, fontWeight: FontWeight.w800, height: 1.2)),
+            const SizedBox(height: 48),
+            if (showAmounts) ...[
+              for (final s in top) _row(s.merchant.displayName, formatMoney(s.yearlyEqMinor)),
+              if (restCount > 0) _row('+ ще $restCount', formatMoney(restYearly)),
+              const SizedBox(height: 48),
+            ],
+            const Text('А скільки з\'їдають твої? → subflow.app',
+                style: TextStyle(color: coral, fontSize: 36, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
     );
   }
+
+  Widget _row(String name, String amount) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Expanded(child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 40), overflow: TextOverflow.ellipsis)),
+            Text(amount, style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      );
 }
 
 /// Opt-in dialog before sharing: choose whether to reveal the amount.

@@ -1,8 +1,10 @@
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/analytics.dart';
+import '../../core/motion.dart';
 import 'onboarding_controller.dart';
 import 'pages/accounts_page.dart';
 import 'pages/connect_page.dart';
@@ -11,7 +13,8 @@ import 'pages/security_page.dart';
 import 'pages/value_page.dart';
 
 /// Linear connect wizard (subF-14): value → security → token → accounts → progress.
-/// A PageView (not routes) so the connection state threads through pages without params.
+/// Steps swap with a shared-axis X transition (design "Анімації" §1); the top progress
+/// bar catches up with the new step on the same curve. Back plays the motion reversed.
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -20,14 +23,17 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  final _controller = PageController();
   int _page = 0;
+  bool _reverse = false;
 
   static const _pageCount = 5;
 
   void _goTo(int page) {
     Analytics.onboardingStep(page + 1);
-    _controller.animateToPage(page, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+    setState(() {
+      _reverse = page < _page;
+      _page = page;
+    });
   }
 
   void _next() => _goTo(_page + 1);
@@ -48,6 +54,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     Analytics.onboardingStep(1);
   }
 
+  Widget _pageFor(int page, OnboardingState state) => switch (page) {
+        0 => ValuePage(onNext: _next),
+        1 => SecurityPage(onNext: _next),
+        2 => ConnectPage(onConnected: _onConnected),
+        3 => AccountsPage(onNext: _next, connectionId: state.connectionId),
+        _ => state.connectionId != null
+            ? ProgressPage(connectionId: state.connectionId!, onDone: _finish)
+            : const SizedBox.shrink(),
+      };
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(onboardingControllerProvider);
@@ -57,51 +73,52 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         leading: _page > 0 && _page < 4
             ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => _goTo(_page - 1))
             : null,
-        title: _StepDots(current: _page, count: _pageCount),
+        title: _StepBar(current: _page, count: _pageCount),
         centerTitle: true,
       ),
-      body: PageView(
-        controller: _controller,
-        physics: const NeverScrollableScrollPhysics(),
-        onPageChanged: (p) => setState(() => _page = p),
-        children: [
-          ValuePage(onNext: _next),
-          SecurityPage(onNext: _next),
-          ConnectPage(onConnected: _onConnected),
-          AccountsPage(onNext: _next, connectionId: state.connectionId),
-          if (state.connectionId != null)
-            ProgressPage(connectionId: state.connectionId!, onDone: _finish)
-          else
-            const SizedBox.shrink(),
-        ],
+      body: PageTransitionSwitcher(
+        duration: _reverse ? Motion.pageBack : Motion.pageForward,
+        reverse: _reverse,
+        transitionBuilder: (child, animation, secondaryAnimation) => SharedAxisTransition(
+          animation: animation,
+          secondaryAnimation: secondaryAnimation,
+          transitionType: SharedAxisTransitionType.horizontal,
+          fillColor: Colors.transparent,
+          child: child,
+        ),
+        child: KeyedSubtree(key: ValueKey(_page), child: _pageFor(_page, state)),
       ),
     );
   }
 }
 
-class _StepDots extends StatelessWidget {
-  const _StepDots({required this.current, required this.count});
+/// The step progress bar catches up with the new step on the emphasized curve.
+class _StepBar extends StatelessWidget {
+  const _StepBar({required this.current, required this.count});
   final int current;
   final int count;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < count; i++)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.symmetric(horizontal: 3),
-            width: i == current ? 20 : 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: i <= current ? scheme.primary : scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(4),
+    return SizedBox(
+      width: 160,
+      height: 6,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(3),
+        child: Stack(
+          children: [
+            Container(color: scheme.surfaceContainerHigh),
+            AnimatedFractionallySizedBox(
+              duration: Motion.pageForward,
+              curve: Motion.emphasized,
+              alignment: Alignment.centerLeft,
+              widthFactor: (current + 1) / count,
+              child: Container(color: scheme.primary),
             ),
-          ),
-      ],
+          ],
+        ),
+      ),
     );
   }
 }
