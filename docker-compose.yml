@@ -17,19 +17,36 @@ services:
 
   # Optional: run the built API image locally. `docker compose --profile full up`.
   # Day-to-day dev runs the API on the host (`cd apps/api && bun run dev`) against `db`.
+  # One-shot: applies drizzle migrations before the api starts.
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: build
+    working_dir: /repo/apps/api
+    command: ["bun", "run", "db:migrate"]
+    environment:
+      DATABASE_URL: postgres://subflow:subflow@db:5432/subflow
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ["full"]
+
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     environment:
-      NODE_ENV: production
+      # development: local run — LogMailer and the dev JWT secret are rejected
+      # under NODE_ENV=production (env.ts / mailer.ts).
+      NODE_ENV: development
       PORT: 3000
       DATABASE_URL: postgres://subflow:subflow@db:5432/subflow
     ports:
       - "3000:3000"
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     profiles: ["full"]
 
 volumes:
