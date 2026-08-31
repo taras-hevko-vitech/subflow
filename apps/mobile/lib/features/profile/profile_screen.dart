@@ -120,7 +120,13 @@ class _ConnectionStatus extends ConsumerWidget {
       return ListTile(
         leading: Icon(Icons.link_off, color: theme.colorScheme.onSurfaceVariant),
         title: const Text('Не підключено'),
-        trailing: FilledButton(onPressed: () => context.go('/onboarding'), child: const Text('Підключити')),
+        // the global FilledButton theme is full-width (Size.fromHeight); a full-width
+        // trailing trips ListTile's "trailing consumes entire tile width" assert
+        trailing: FilledButton(
+          style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+          onPressed: () => context.go('/onboarding'),
+          child: const Text('Підключити'),
+        ),
         contentPadding: EdgeInsets.zero,
       );
     }

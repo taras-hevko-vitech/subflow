@@ -21,3 +21,6 @@ infra/cdk.out/
 # flutter (subF-13+)
 apps/mobile/.dart_tool/
 apps/mobile/build/
+
+# local design exports (big standalone HTML bundles, not for the repo)
+design/

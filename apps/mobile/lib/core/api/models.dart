@@ -118,6 +118,7 @@ class SubscriptionView {
     required this.yearlyEqMinor,
     required this.confidence,
     required this.status,
+    required this.lapsed,
     required this.nextChargeAt,
     required this.badges,
   });
@@ -132,6 +133,7 @@ class SubscriptionView {
         yearlyEqMinor: (j['yearlyEqMinor'] as num?)?.toInt() ?? (j['monthlyEqMinor'] as num).toInt() * 12,
         confidence: (j['confidence'] as num).toDouble(),
         status: j['status'] as String,
+        lapsed: j['lapsed'] as bool? ?? false,
         nextChargeAt: j['nextChargeAt'] == null ? null : DateTime.tryParse(j['nextChargeAt'] as String),
         badges: SubBadges.fromJson(j['badges'] as Map<String, dynamic>?),
       );
@@ -145,11 +147,13 @@ class SubscriptionView {
   final int yearlyEqMinor;
   final double confidence;
   final String status; // detected | confirmed | container
+  /// no charge for >1.5 nominal intervals — looks cancelled, excluded from totals
+  final bool lapsed;
   final DateTime? nextChargeAt;
   final SubBadges badges;
 
   bool get isContainer => status == 'container';
-  bool get needsConfirm => confidence < 0.8 && status == 'detected';
+  bool get needsConfirm => !lapsed && confidence < 0.8 && status == 'detected';
 }
 
 class SubscriptionEvent {

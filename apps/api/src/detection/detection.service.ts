@@ -21,6 +21,19 @@ const YEARLY_FACTOR = { weekly: 52, monthly: 12, yearly: 1 } as const;
 const PRICE_INCREASE_MIN_RATIO = 0.02;
 /** first_seen older than this → "давня" badge (a forgotten-subscription candidate) */
 const OLD_MONTHS = 6;
+/** nominal cadence intervals for staleness math */
+const CADENCE_DAYS = { weekly: 7, monthly: 30.44, yearly: 365.25 } as const;
+/**
+ * No charge for longer than this many nominal intervals → the subscription looks
+ * cancelled/lapsed (subF-22): excluded from the ₴ totals, surfaced separately.
+ */
+const LAPSE_FACTOR = 1.5;
+const DAY_MS = 24 * 3600 * 1000;
+
+function isLapsed(lastChargeAt: Date | null, cadence: keyof typeof CADENCE_DAYS, now: number): boolean {
+  if (!lastChargeAt) return false;
+  return now - lastChargeAt.getTime() > LAPSE_FACTOR * CADENCE_DAYS[cadence] * DAY_MS;
+}
 
 @Injectable()
 export class DetectionService {
@@ -192,10 +205,12 @@ export class DetectionService {
     oldCutoff.setMonth(oldCutoff.getMonth() - OLD_MONTHS);
 
     let totalMonthlyMinor = 0;
+    const now = Date.now();
     const items = rows
       .map(({ sub, merchant }) => {
         const monthlyEq = Math.round(sub.amountMinor * MONTHLY_FACTOR[sub.cadence]);
-        if (sub.currencyCode === 980) totalMonthlyMinor += monthlyEq;
+        const lapsed = isLapsed(sub.lastChargeAt, sub.cadence, now);
+        if (sub.currencyCode === 980 && !lapsed) totalMonthlyMinor += monthlyEq;
         return {
           id: sub.id,
           merchant: {
@@ -212,6 +227,7 @@ export class DetectionService {
           yearlyEqMinor: Math.round(sub.amountMinor * YEARLY_FACTOR[sub.cadence]),
           confidence: Number(sub.confidence),
           status: sub.status,
+          lapsed,
           firstSeen: sub.firstSeen,
           lastChargeAt: sub.lastChargeAt,
           nextChargeAt: sub.nextChargeAt,
@@ -271,6 +287,7 @@ export class DetectionService {
       currencyCode: row.sub.currencyCode,
       yearlyEqMinor: Math.round(row.sub.amountMinor * YEARLY_FACTOR[row.sub.cadence]),
       status: row.sub.status,
+      lapsed: isLapsed(row.sub.lastChargeAt, row.sub.cadence, Date.now()),
       firstSeen: row.sub.firstSeen,
       lastChargeAt: row.sub.lastChargeAt,
       nextChargeAt: row.sub.nextChargeAt,
